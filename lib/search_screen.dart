@@ -48,7 +48,6 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     setState(() => _searching = true);
 
     try {
-      // البحث المتزامن لتحسين السرعة
       final results = await Future.wait([
         DatabaseService.searchUsers(trimmedQuery),
         DatabaseService.searchRooms(trimmedQuery),
@@ -75,7 +74,6 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       backgroundColor: Colors.transparent, 
       body: SafeArea(
         child: Column(children: [
-          // العنوان (تصميمك الأصلي)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: Align(
@@ -85,7 +83,6 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             ),
           ),
 
-          // شريط البحث الزجاجي (تصميمك الأصلي)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
@@ -122,7 +119,6 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           ),
           const SizedBox(height: 20),
 
-          // تبويبات البحث
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             height: 45,
@@ -136,7 +132,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 color: t.button, 
                 borderRadius: BorderRadius.circular(12),
               ),
-              indicatorSize: TabBarIndicatorSize.tab, // لضمان تغطية التبويب بالكامل
+              indicatorSize: TabBarIndicatorSize.tab,
               labelColor: t.buttonText,
               unselectedLabelColor: t.text.withOpacity(0.4),
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, fontFamily: 'Tajawal'),
@@ -148,7 +144,6 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           ),
           const SizedBox(height: 15),
 
-          // محتوى البحث
           Expanded(child: TabBarView(
             controller: _tabController,
             children: [
@@ -176,8 +171,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           title: u.fullName,
           subtitle: u.isOnline ? 'نشط الآن' : 'غير متصل',
           subtitleColor: u.isOnline ? Colors.greenAccent : t.text.withOpacity(0.3),
-          image: u.avatarUrl.isNotEmpty ? NetworkImage(u.avatarUrl) : null,
-          placeholder: u.fullName.isNotEmpty ? u.fullName[0] : '?',
+          image: (u.avatarUrl ?? "").isNotEmpty ? NetworkImage(u.avatarUrl!) : null,
+          placeholder: (u.fullName.isNotEmpty) ? u.fullName[0] : '?',
         );
       },
     );
@@ -196,8 +191,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           t: t,
           onTap: () => Navigator.push(ctx, MaterialPageRoute(builder: (_) => RoomChatScreen(room: r, currentUser: widget.currentUser, theme: t))),
           title: r.name,
-          subtitle: r.description,
-          iconText: r.icon.isEmpty ? '💬' : r.icon,
+          subtitle: r.description ?? "", // إصلاح: حماية النص الفارغ
+          iconData: r.icon, // تمرير الأيقونة مباشرة
           isRoom: true,
         );
       },
@@ -212,7 +207,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     Color? subtitleColor,
     ImageProvider? image,
     String? placeholder,
-    String? iconText,
+    IconData? iconData, // تم تعديل النوع هنا
     bool isRoom = false,
   }) {
     return Container(
@@ -229,13 +224,13 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           ? Container(
               width: 45, height: 45,
               decoration: BoxDecoration(color: t.button.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-              child: Center(child: Text(iconText!, style: const TextStyle(fontSize: 20))),
+              child: Center(child: Icon(iconData ?? Icons.chat_bubble_rounded, color: t.button, size: 20)),
             )
           : CircleAvatar(
               radius: 22,
               backgroundColor: t.button.withOpacity(0.2),
               backgroundImage: image,
-              child: image == null ? Text(placeholder!, style: TextStyle(color: t.button, fontWeight: FontWeight.bold)) : null,
+              child: image == null ? Text(placeholder ?? "?", style: TextStyle(color: t.button, fontWeight: FontWeight.bold)) : null,
             ),
         title: Text(title, textAlign: TextAlign.right, style: TextStyle(color: t.text, fontWeight: FontWeight.bold, fontSize: 15)),
         subtitle: Text(subtitle, textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis, 
