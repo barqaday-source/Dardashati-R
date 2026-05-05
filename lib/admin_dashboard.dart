@@ -10,11 +10,11 @@ class DatabaseService {
   static User? get currentUser => _supabase.auth.currentUser;
   static Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
-  // 2. جلب بيانات المستخدم (حل مشكلة profile_screen)
+  // 2. جلب بيانات المستخدم
   static Future<AppUser?> getUserById(String id) async {
     try {
       final data = await _supabase
-          .from('users') // تأكد أن اسم الجدول 'users' في سوبابيس
+          .from('users') 
           .select()
           .eq('id', id)
           .single();
@@ -48,7 +48,7 @@ class DatabaseService {
     }
   }
 
-  // 4. نظام الرسائل والدردشة
+  // 4. نظام الرسائل والدردشة (تمت إضافة دوال الغرف المفقودة هنا)
   static Future<void> sendMessage(String receiverId, String content, {String? replyToId}) async {
     if (currentUser == null) return;
     await _supabase.from('messages').insert({
@@ -61,6 +61,31 @@ class DatabaseService {
     });
   }
 
+  // دالة البحث عن المستخدمين (المطلوبة في search_screen)
+  static Future<List<AppUser>> searchUsers(String query) async {
+    final response = await _supabase
+        .from('users')
+        .select()
+        .ilike('username', '%$query%');
+    return (response as List).map((u) => AppUser.fromMap(u)).toList();
+  }
+
+  // دوال غرف الدردشة (المطلوبة في room_chat_screen)
+  static Future<void> joinRoom(String roomId) async {
+    await _supabase.from('room_members').insert({
+      'room_id': roomId,
+      'user_id': currentUser!.id,
+    });
+  }
+
+  static Stream<List<Map<String, dynamic>>> getRoomMessages(String roomId) {
+    return _supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('room_id', roomId)
+        .order('created_at', ascending: true);
+  }
+
   static Stream<List<Map<String, dynamic>>> getMessagesStream(String otherUserId) {
     return _supabase
         .from('messages')
@@ -69,7 +94,7 @@ class DatabaseService {
         .order('created_at', ascending: true);
   }
 
-  // 5. نظام الإشعارات (حل مشكلة notifications_screen)
+  // 5. نظام الإشعارات
   static Future<List<AppNotification>> getNotifications() async {
     final response = await _supabase
         .from('notifications')
@@ -88,7 +113,7 @@ class DatabaseService {
     await _supabase.from('notifications').update({'is_read': true}).eq('user_id', currentUser!.id);
   }
 
-  // 6. حماية المستخدم والتقارير (حل مشكلة profile_screen)
+  // 6. حماية المستخدم والتقارير
   static Future<void> submitReport({required String targetId, required String reason}) async {
     await _supabase.from('reports').insert({
       'reporter_id': currentUser!.id,
@@ -98,7 +123,7 @@ class DatabaseService {
     });
   }
 
-  // 7. إعدادات المستخدم (حل مشكلة settings_screen)
+  // 7. إعدادات المستخدم
   static Future<void> saveUserTheme(String themeName) async {
     if (currentUser == null) return;
     await _supabase.from('users').update({
