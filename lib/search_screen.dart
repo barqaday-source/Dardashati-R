@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:dardashati/models.dart';
-import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
 import 'package:dardashati/profile_screen.dart';
 import 'package:dardashati/room_chat_screen.dart';
@@ -48,7 +47,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     setState(() => _searching = true);
 
     try {
-      // البحث المتزامن عن المستخدمين والغرف
+      // البحث المتزامن لتحسين السرعة
       final results = await Future.wait([
         DatabaseService.searchUsers(trimmedQuery),
         DatabaseService.searchRooms(trimmedQuery),
@@ -72,10 +71,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final t = widget.theme;
     return Scaffold(
-      backgroundColor: Colors.transparent, // لجعل الخلفية تظهر من الـ Stack في الرئيسي
+      backgroundColor: Colors.transparent, 
       body: SafeArea(
         child: Column(children: [
-          // العنوان
+          // العنوان (تصميمك الأصلي)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: Align(
@@ -85,7 +84,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             ),
           ),
 
-          // شريط البحث الزجاجي
+          // شريط البحث الزجاجي (تصميمك الأصلي)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
@@ -135,8 +134,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               indicator: BoxDecoration(
                 color: t.button, 
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: t.button.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
               ),
+              indicatorSize: TabBarIndicatorSize.tab, // لضمان تغطية التبويب بالكامل
               labelColor: t.buttonText,
               unselectedLabelColor: t.text.withOpacity(0.4),
               labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, fontFamily: 'Tajawal'),
@@ -177,7 +176,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           subtitle: u.isOnline ? 'نشط الآن' : 'غير متصل',
           subtitleColor: u.isOnline ? Colors.greenAccent : t.text.withOpacity(0.3),
           image: u.avatarUrl.isNotEmpty ? NetworkImage(u.avatarUrl) : null,
-          placeholder: u.fullName[0],
+          placeholder: u.fullName.isNotEmpty ? u.fullName[0] : '?',
         );
       },
     );
