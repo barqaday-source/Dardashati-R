@@ -1,0 +1,54 @@
+name: Build Dardashati App V2
+
+# منع الزحام: سيقوم بإلغاء أي بناء قديم بمجرد بدء بناء جديد
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true 
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # للسماح بالتشغيل اليدوي
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30 
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+          cache: true
+
+      - name: Get Dependencies & Clean
+        run: |
+          # تحديد مسار المشروع البرمجي لضمان العمل من المجلد الصحيح
+          PROJECT_PATH=$(find . -name "pubspec.yaml" -exec dirname {} \;)
+          echo "PROJECT_PATH=$PROJECT_PATH" >> $GITHUB_ENV
+          cd "$PROJECT_PATH"
+          flutter clean
+          flutter pub get
+
+      - name: Build APK Release
+        run: |
+          cd ${{ env.PROJECT_PATH }}
+          # بناء النسخة النهائية مع تفعيل السجل المفصل لمراقبة الأخطاء
+          flutter build apk --release --no-tree-shake-icons --verbose
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dardashati-release-apk
+          path: "**/build/app/outputs/flutter-apk/app-release.apk"
+          if-no-files-found: error

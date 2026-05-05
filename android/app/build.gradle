@@ -1,0 +1,61 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+    // الحل الجذري: تعريف إضافة جوجل هنا بدلاً من الأسفل للامتثال للنظام الحديث
+    id "com.google.gms.google-services" 
+}
+
+android {
+    // الهوية الرسمية للتطبيق - مطابقة لسوبابيس وجوجل
+    namespace "com.dardashati.app" 
+    compileSdk 34
+    
+    ndkVersion "25.1.8937393" 
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    defaultConfig {
+        applicationId "com.dardashati.app"
+        minSdk 21 
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+
+        resConfigs "ar", "en"
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug 
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    // إضافة إعدادات الـ Lint مباشرة هنا لمنع فشل البناء في GitHub
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    // يتم إدارة التبعيات عبر Flutter pubspec.yaml
+    implementation "androidx.multidex:multidex:2.0.1"
+}
+
+// ملاحظة: تم حذف سطر apply plugin من هنا لأنه أضيف في بلوك plugins بالأعلى

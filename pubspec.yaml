@@ -1,0 +1,42 @@
+name: dardashati 
+description: "دردشاتي: منصة تواصل فورية تجمع بين الأمان الفائق والسرعة المذهلة، مصممة لربط عالمك بخصوصية تامة."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # --- المحرك الأساسي (Supabase & Google) ---
+  supabase_flutter: ^2.5.0
+  google_sign_in: ^6.2.1 
+
+  # --- التصميم الفاخر (UI/UX) ---
+  # نستخدم Blur للوصول لتصميم عصري يشبه أنظمة التشغيل الحديثة
+  blur: ^3.1.0 
+  google_fonts: ^6.2.1
+  font_awesome_flutter: ^10.7.0 
+  
+  # --- إدارة الوسائط والبيانات ---
+  cached_network_image: ^3.3.1
+  image_picker: ^1.1.2
+  shared_preferences: ^2.2.3
+  
+  # --- تجربة المستخدم التفاعلية ---
+  shimmer: ^3.0.0
+  timeago: ^3.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
