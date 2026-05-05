@@ -6,11 +6,12 @@ import 'package:dardashati/models.dart';
 class DatabaseService {
   static final _supabase = Supabase.instance.client;
 
+  // 1. المعرفات الأساسية (لحل أخطاء uid و currentUser)
   static User? get currentUser => _supabase.auth.currentUser;
-  static String? get uid => _supabase.auth.currentUser?.id; // إضافة uid لحل أخطاء المعرفات
+  static String? get uid => _supabase.auth.currentUser?.id;
   static Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
-  // ==================== 1. نظام الدخول ====================
+  // 2. نظام الدخول (Auth)
   static Future<AuthResponse?> signInWithGoogle() async {
     const webClientId = '62134907551-ofam7s8j4m4id3qtdqac6vrk7ui2d2o3.apps.googleusercontent.com';
     final googleSignIn = GoogleSignIn(serverClientId: webClientId);
@@ -24,61 +25,12 @@ class DatabaseService {
     );
   }
 
-  // ==================== 2. الرسائل (تصحيح أخطاء السطور 32 و 49) ====================
-
-  // تصحيح: الـ Stream لا يدعم .or() برمجياً ويسبب فشل البناء
-  static Stream<List<Map<String, dynamic>>> getMessagesStream(String otherUserId) {
-    return _supabase.from('messages')
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: true);
+  static Future<void> signOut() async {
+    await GoogleSignIn().signOut();
+    await _supabase.auth.signOut();
   }
 
-  // إضافة الدالة المفقودة المطلوبة في السطر 54 من السجل
-  static Future<List<AppMessage>> getPrivateMessages(String otherUserId) async {
-    final res = await _supabase.from('messages')
-        .select()
-        .or('and(user_id.eq.$uid,receiver_id.eq.$otherUserId),and(user_id.eq.$otherUserId,receiver_id.eq.$uid)')
-        .order('created_at');
-    return (res as List).map((m) => AppMessage.fromMap(m)).toList();
-  }
-
-  static Future<void> sendMessage(String receiverId, String content, {String? replyToId}) async {
-    if (uid == null) return;
-    await _supabase.from('messages').insert({
-      'user_id': uid,
-      'receiver_id': receiverId,
-      'content': content,
-      'reply_to_id': replyToId,
-    });
-  }
-
-  // ==================== 3. نظام الغرف (تصحيح أخطاء السطور 42-44) ====================
-
-  // تعديل لتطابق استدعاء UI: استخدام Named Parameters
-  static Future<void> sendRoomMessage({required String roomId, required String content, String? replyToId}) async {
-    await _supabase.from('messages').insert({
-      'room_id': roomId, 
-      'user_id': uid!, 
-      'content': content,
-      'reply_to_id': replyToId
-    });
-  }
-
-  // تصحيح السطر 42 و 57: إرجاع AppMessage بدلاً من Map
-  static Future<List<AppMessage>> getRoomMessages(String roomId) async {
-     final res = await _supabase.from('messages').select().eq('room_id', roomId).order('created_at');
-     return (res as List).map((m) => AppMessage.fromMap(m)).toList();
-  }
-
-  // ==================== 4. الإدارة والبحث (حل خطأ السطر 37 و 41) ====================
-
-  // إضافة دالة جلب الإشعارات المفقودة
-  static Future<List<AppNotification>> getNotifications() async {
-    if (uid == null) return [];
-    final res = await _supabase.from('notifications').select().eq('user_id', uid!).order('created_at');
-    return (res as List).map((n) => AppNotification.fromMap(n)).toList();
-  }
-
+  // 3. إدارة المستخدمين والبحث (حل أخطاء profile_screen و search_screen)
   static Future<AppUser?> getUserById(String id) async {
     try {
       final data = await _supabase.from('users').select().eq('id', id).single();
@@ -91,14 +43,51 @@ class DatabaseService {
     return (res as List).map((u) => AppUser.fromMap(u)).toList();
   }
 
-  // ==================== 5. التحكم والمغادرة ====================
+  static Future<List<AppRoom>> searchRooms(String query) async {
+    final res = await _supabase.from('rooms').select().ilike('name', '%$query%');
+    return (res as List).map((r) => AppRoom.fromMap(r)).toList();
+  }
+
+  // 4. نظام الرسائل والغرف (حل أخطاء private_chat و room_chat)
+  static Stream<List<Map<String, dynamic>>> getMessagesStream(String otherUserId) {
+    // تم إلغاء .or() هنا لأنها تسبب خطأ برمجياً في الـ Stream
+    return _supabase.from('messages').stream(primaryKey: ['id']).order('created_at', ascending: true);
+  }
+
+  static Future<void> sendMessage(String receiverId, String content, {String? replyToId}) async {
+    if (uid == null) return;
+    await _supabase.from('messages').insert({
+      'user_id': uid,
+      'receiver_id': receiverId,
+      'content': content,
+      'reply_to_id': replyToId,
+    });
+  }
+
+  static Future<void> sendRoomMessage({required String roomId, required String content, String? replyToId}) async {
+    await _supabase.from('messages').insert({
+      'room_id': roomId, 
+      'user_id': uid!, 
+      'content': content,
+      'reply_to_id': replyToId
+    });
+  }
+
+  static Future<List<AppUser>> getRoomMembers(String roomId) async {
+    final res = await _supabase.from('room_members').select('users(*)').eq('room_id', roomId);
+    return (res as List).map((u) => AppUser.fromMap(u['users'])).toList();
+  }
+
+  // 5. الإشعارات والتقارير (حل أخطاء notifications_screen)
+  static Future<void> markNotificationRead(String id) async {
+    await _supabase.from('notifications').update({'is_read': true}).eq('id', id);
+  }
+
+  static Future<void> submitReport({required String targetId, required String reason}) async {
+    await _supabase.from('reports').insert({'reporter_id': uid!, 'reported_id': targetId, 'reason': reason});
+  }
 
   static Future<void> saveUserTheme(String themeName) async {
     await _supabase.from('users').update({'theme_preference': themeName}).eq('id', uid!);
-  }
-
-  static Future<void> signOut() async {
-    await GoogleSignIn().signOut();
-    await _supabase.auth.signOut();
   }
 }
