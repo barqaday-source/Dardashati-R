@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dardashati/models.dart';
-import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
 import 'package:dardashati/profile_screen.dart';
-import 'package:dardashati/utils/logger.dart';
 
 class RoomChatScreen extends StatefulWidget {
   final AppRoom room;
@@ -25,67 +22,33 @@ class RoomChatScreen extends StatefulWidget {
 class _RoomChatScreenState extends State<RoomChatScreen> {
   final _ctrl = TextEditingController();
   final _scroll = ScrollController();
-  List<AppMessage> _messages = [];
   AppMessage? _replyTo;
-  RealtimeChannel? _channel;
-  bool _loading = true;
   bool _sending = false;
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
-    _subscribeRealtime();
-    // تسجيل دخول المستخدم للغرفة (اختياري حسب منطق الداتابيز لديك)
+    // تسجيل دخول المستخدم للغرفة
     DatabaseService.joinRoom(widget.room.id);
   }
 
   @override
   void dispose() {
-    _channel?.unsubscribe();
     _ctrl.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
-  // تحميل الرسائل من السحابة
-  Future<void> _loadMessages() async {
-    try {
-      final msgs = await DatabaseService.getRoomMessages(widget.room.id);
-      if (mounted) {
-        setState(() {
-          _messages = msgs;
-          _loading = false;
-        });
-        _scrollToBottom();
-      }
-    } catch (e) {
-      AppLogger.error("ROOM", "فشل تحميل الرسائل", e);
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  // الاشتراك في التحديثات اللحظية (Real-time)
-  void _subscribeRealtime() {
-    _channel = DatabaseService.subscribeToRoomMessages(widget.room.id, (record) async {
-      // عند وصول رسالة جديدة، نفضل إعادة جلب الرسائل لضمان ظهور بيانات المرسل كاملة
-      _loadMessages(); 
-    });
-  }
-
   void _scrollToBottom() {
     if (_scroll.hasClients) {
-      Future.delayed(const Duration(milliseconds: 200), () {
-        _scroll.animateTo(
-          _scroll.position.maxScrollExtent, 
-          duration: const Duration(milliseconds: 300), 
-          curve: Curves.easeOut
-        );
-      });
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent, 
+        duration: const Duration(milliseconds: 300), 
+        curve: Curves.easeOut
+      );
     }
   }
 
-  // إرسال الرسالة
   Future<void> _send() async {
     final text = _ctrl.text.trim();
     if (text.isEmpty || _sending) return;
@@ -103,7 +66,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
       );
       _scrollToBottom();
     } catch (e) {
-      AppLogger.error("ROOM", "فشل إرسال الرسالة", e);
+      // معالجة الخطأ بصمت
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -117,17 +80,35 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
       appBar: _buildAppBar(t),
       body: Column(children: [
         Expanded(
-          child: _loading
-              ? Center(child: CircularProgressIndicator(color: t.button))
-              : _buildMessagesList(t),
+          child: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: DatabaseService.subscribeToRoomMessages(widget.room.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator(color: t.button));
+              }
+              
+              final messages = (snapshot.data ?? [])
+                  .map((m) => AppMessage.fromMap(m))
+                  .toList();
+
+              // التمرير للأسفل عند وصول رسائل جديدة
+              WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+              return ListView.builder(
+                controller: _scroll,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+                itemCount: messages.length,
+                itemBuilder: (ctx, i) => _buildMessageBubble(messages[i], t),
+              );
+            },
+          ),
         ),
         if (_replyTo != null) _buildReplyBar(t),
         _buildInputBar(t),
       ]),
     );
   }
-
-  // --- أدوات بناء الواجهة ---
 
   PreferredSizeWidget _buildAppBar(AppThemeData t) {
     return AppBar(
@@ -161,16 +142,6 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
           onPressed: () => _showMembers(context, t)
         )
       ],
-    );
-  }
-
-  Widget _buildMessagesList(AppThemeData t) {
-    return ListView.builder(
-      controller: _scroll,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
-      itemCount: _messages.length,
-      itemBuilder: (ctx, i) => _buildMessageBubble(_messages[i], t),
     );
   }
 
@@ -235,7 +206,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
         radius: 18,
         backgroundColor: t.button.withOpacity(0.1),
         backgroundImage: msg.senderAvatar.isNotEmpty ? NetworkImage(msg.senderAvatar) : null,
-        child: msg.senderAvatar.isEmpty ? Text(msg.senderName[0], style: TextStyle(color: t.button, fontSize: 12)) : null,
+        child: msg.senderAvatar.isEmpty ? Text(msg.senderName.isNotEmpty ? msg.senderName[0] : "?", style: TextStyle(color: t.button, fontSize: 12)) : null,
       ),
     );
   }
@@ -339,7 +310,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
                   leading: Icon(Icons.arrow_back_ios_new_rounded, size: 12, color: t.text.withOpacity(0.2)),
                   trailing: CircleAvatar(
                     backgroundImage: u.avatarUrl.isNotEmpty ? NetworkImage(u.avatarUrl) : null,
-                    child: u.avatarUrl.isEmpty ? Text(u.fullName[0]) : null,
+                    child: u.avatarUrl.isEmpty ? Text(u.fullName.isNotEmpty ? u.fullName[0] : "?") : null,
                   ),
                   title: Text(u.fullName, textAlign: TextAlign.right, style: TextStyle(color: t.text, fontWeight: FontWeight.bold)),
                   subtitle: Text(u.isOnline ? 'نشط' : 'بعيد', textAlign: TextAlign.right, style: TextStyle(color: u.isOnline ? Colors.greenAccent : t.text.withOpacity(0.3))),
