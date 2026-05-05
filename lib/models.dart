@@ -92,7 +92,7 @@ class AppRoom {
   final String? description;
   final String? imageUrl;
   final int memberCount;
-  final IconData icon; // تم إضافتها لحل خطأ السطر 148 في السجل
+  final IconData icon; 
 
   AppRoom({
     required this.id,
@@ -100,10 +100,9 @@ class AppRoom {
     this.description,
     this.imageUrl,
     this.memberCount = 0,
-    this.icon = Icons.meeting_room_rounded, // قيمة افتراضية
+    this.icon = Icons.meeting_room_rounded, 
   });
 
-  // تم إضافتها لحل خطأ السطر 154 في السجل
   String get membersCountLabel => "$memberCount عضو";
 
   factory AppRoom.fromMap(Map<String, dynamic> map) {
@@ -151,6 +150,32 @@ class AppNotification {
       case 'system': return Icons.info_outline;
       case 'alert': return Icons.warning_amber_rounded;
       default: return Icons.notifications_none;
+    } // تم إصلاح القوس هنا
+  }
+}
+
+class AppReport {
+  final String id;
+  final String reporterId;
+  final String reportedId;
+  final String reason;
+  final DateTime createdAt;
+
+  AppReport({
+    required this.id,
+    required this.reporterId,
+    required this.reportedId,
+    required this.reason,
+    required this.createdAt,
+  });
+
+  factory AppReport.fromMap(Map<String, dynamic> map) {
+    return AppReport(
+      id: map['id']?.toString() ?? '',
+      reporterId: map['reporter_id']?.toString() ?? '',
+      reportedId: map['reported_id']?.toString() ?? '',
+      reason: map['reason']?.toString() ?? '',
+      createdAt: DateTime.parse(map['created_at'] ?? DateTime.now().toIso8601String()),
     );
   }
 }
