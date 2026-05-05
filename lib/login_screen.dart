@@ -1,7 +1,7 @@
 import 'package:dardashati/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:dardashati/models.dart';
+// تم حذف سطر models.dart من هنا لأنه غير مستخدم ويسبب Warning
 import 'package:dardashati/services/database_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -126,7 +126,6 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: t.background,
       body: Stack(
         children: [
-          // الخلفية المتدرجة
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -136,7 +135,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          // الدوائر الضبابية (تصميمك الأصلي)
           Positioned(top: -50, left: -50, child: _BlurOrb(color: t.button.withOpacity(0.15), size: 250)),
           Positioned(bottom: -100, right: -50, child: _BlurOrb(color: t.button.withOpacity(0.1), size: 300)),
           
@@ -333,8 +331,8 @@ class _BlurOrb extends StatelessWidget {
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      // إضافة Blur حقيقي ليعطي تأثير "الأورب"
       child: Opacity(opacity: 0.5),
     );
   }
 }
+
