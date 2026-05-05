@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dardashati/models.dart';
-import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
-import 'package:dardashati/utils/logger.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -41,7 +39,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
-      AppLogger.error("PROFILE", "فشل تحميل بيانات البروفايل", e);
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -92,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
                 }
               } catch (e) {
-                AppLogger.error("REPORT", "فشل إرسال البلاغ", e);
+                // خطأ في الإرسال
               }
             },
             style: ElevatedButton.styleFrom(
@@ -140,7 +137,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(children: [
           const SizedBox(height: 20),
           
-          // الصورة الشخصية مع حالة الاتصال
           Stack(children: [
             Container(
               padding: const EdgeInsets.all(4),
@@ -166,7 +162,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Text(u.fullName, style: TextStyle(color: t.text, fontSize: 26, fontWeight: FontWeight.w900, fontFamily: 'Tajawal')),
           const SizedBox(height: 8),
           
-          // شارة الرتبة (Admin / Member)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
@@ -182,19 +177,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           
           const SizedBox(height: 40),
-          
-          // قسم المعلومات
           _buildInfoSection(t, u),
-          
           const SizedBox(height: 30),
           
-          // زر مراسلة إذا لم يكن المستخدم هو الحالي
           if (!_isMe)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // الانتقال لدردشة خاصة (ستقوم ببنائها لاحقاً)
+                  // هنا يتم الربط بـ PrivateChatScreen لاحقاً
                 },
                 icon: const Icon(Icons.chat_bubble_rounded, size: 18),
                 label: const Text('إرسال رسالة خاصة', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -239,7 +230,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Icon(icon, size: 22, color: t.button.withOpacity(0.6)),
       const SizedBox(width: 15),
       Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.right, children: [
+        // إصلاح الخطأ البرمجي هنا: تم استبدال right بـ end
+        child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text(label, style: TextStyle(color: t.text.withOpacity(0.4), fontSize: 12)),
           const SizedBox(height: 4),
           Text(value, textAlign: TextAlign.right, style: TextStyle(color: valueColor ?? t.text, fontWeight: FontWeight.w600, fontSize: 14)),
