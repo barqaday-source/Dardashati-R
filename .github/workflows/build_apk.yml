@@ -13,44 +13,37 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. جلب الكود بالكامل
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. إعداد الجافا (النسخة 17 هي الأنسب لـ Gradle 8+)
+      # استخدام جافا 17 (النسخة الأكثر استقراراً للفلاتر حالياً)
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. إعداد فلاتر (النسخة المستقرة المحددة لمشروعك)
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6'
           cache: true
 
-      # 4. تثبيت المكتبات والتأكد من توافقها
       - name: Install Dependencies
         run: flutter pub get
 
-      # 5. بناء محرك Gradle (الحل الجذري لنقص ملفات الهاتف)
+      # الخطوة الحاسمة: استخدام إصدار 7.6.3 لحل مشكلة Groovy QName
       - name: Configure Gradle Wrapper
         working-directory: android
         run: |
-          # هذا الأمر ينشئ ملفات gradlew و gradlew.jar الأصلية والمتوافقة 100%
-          # لضمان عدم حدوث خطأ "No such file or directory" مجدداً
-          gradle wrapper --gradle-version 8.0 --distribution-type all
+          gradle wrapper --gradle-version 7.6.3 --distribution-type all
           chmod +x gradlew
 
-      # 6. البناء النهائي للـ APK
       - name: Build Release APK
         run: |
-          # استخدام --no-tree-shake-icons لضمان عدم تعارض الأيقونات والخطوط العربية
+          # تنظيف وبناء نظيف لضمان عدم تداخل الملفات القديمة
           flutter build apk --release --no-tree-shake-icons
 
-      # 7. رفع الملف النهائي كـ Artifact
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
