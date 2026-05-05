@@ -3,10 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// استدعاء المكونات المعتمدة لمشروع دردشاتي
 import 'package:dardashati/models.dart';
 import 'package:dardashati/app_theme.dart'; 
-import 'package:dardashati/services/database_service.dart';
+// تم حذف سطر database_service من هنا لأنه غير مستخدم ويسبب فشل البناء
 import 'package:dardashati/home_screen.dart';
 import 'package:dardashati/login_screen.dart';
 
@@ -17,7 +16,7 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  // تأكد من وضع قيم Supabase الحقيقية هنا
+  // ملاحظة: تأكد من وضع قيم Supabase الحقيقية لكي يعمل التطبيق فعلياً
   await Supabase.initialize(
     url: 'YOUR_SUPABASE_URL', 
     anonKey: 'YOUR_SUPABASE_ANON_KEY',
@@ -48,7 +47,7 @@ class _DardashatiAppState extends State<DardashatiApp> {
   Future<void> _loadInitialSettings() async {
     try {
       if (Supabase.instance.client.auth.currentUser != null) {
-        // يمكن تفعيل جلب الثيم هنا لاحقاً
+        // منطق جلب الثيم المفضل للمستخدم مستقبلاً
       }
     } catch (e) {
       debugPrint("Theme Error: $e");
@@ -88,7 +87,6 @@ class _DardashatiAppState extends State<DardashatiApp> {
         fontFamily: 'Tajawal', 
         useMaterial3: true,
         brightness: _currentTheme.isDark ? Brightness.dark : Brightness.light,
-        // تم استبدال primaryColor بـ button لتتوافق مع الثيم الجديد
         primaryColor: _currentTheme.button,
         scaffoldBackgroundColor: _currentTheme.background,
       ),
@@ -146,7 +144,7 @@ class UpdatePasswordScreen extends StatelessWidget {
     final passController = TextEditingController();
     return Scaffold(
       backgroundColor: theme.background,
-      appBar: AppBar(title: const Text('كلمة مرور جديدة'), backgroundColor: Colors.transparent),
+      appBar: AppBar(title: const Text('كلمة مرور جديدة', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: Colors.transparent),
       body: Padding(
         padding: const EdgeInsets.all(25),
         child: Column(
@@ -154,10 +152,10 @@ class UpdatePasswordScreen extends StatelessWidget {
             TextField(
               controller: passController,
               obscureText: true,
+              textAlign: TextAlign.right,
               decoration: InputDecoration(
                 labelText: 'أدخل كلمة المرور الجديدة',
-                // تم استبدال primaryColor بـ button
-                labelStyle: TextStyle(color: theme.button),
+                labelStyle: TextStyle(color: theme.button, fontFamily: 'Tajawal'),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
               ),
             ),
@@ -174,7 +172,7 @@ class UpdatePasswordScreen extends StatelessWidget {
                 );
                 if (context.mounted) Navigator.pop(context);
               },
-              child: Text('تحديث الآن', style: TextStyle(color: theme.buttonText)),
+              child: Text('تحديث الآن', style: TextStyle(color: theme.buttonText, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
             )
           ],
         ),
