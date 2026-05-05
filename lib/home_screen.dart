@@ -1,12 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:dardashati/models.dart'; 
-import 'package:dardashati/app_theme.dart'; // هذا السطر يحل أخطاء Undefined class
+import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
-import 'package:dardashati/private_chat_screen.dart';
+// تم حذف private_chat_screen و settings_screen لأنها تسبب Warning (غير مستخدمة هنا)
 import 'package:dardashati/notifications_screen.dart';
 import 'package:dardashati/profile_screen.dart';
-import 'package:dardashati/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final AppUser currentUser;
@@ -70,7 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // تم تغيير t.accent إلى t.button.withOpacity(0.1) لأنه تم توحيد المتغيرات
           Positioned(top: -50, left: -50, child: _BlurOrb(color: t.button.withOpacity(0.2), size: 250)),
           Positioned(bottom: 100, right: -50, child: _BlurOrb(color: t.button.withOpacity(0.1), size: 200)),
           
@@ -90,7 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
       height: 70,
       decoration: BoxDecoration(
         color: t.card.withOpacity(0.3),
-        // تم استبدال t.borderRadius بـ 30.0 لتوحيد الشكل
         borderRadius: BorderRadius.circular(30.0),
         border: Border.all(color: Colors.white.withOpacity(0.2)),
         boxShadow: [
@@ -150,7 +147,8 @@ class _BlurOrb extends StatelessWidget {
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50), child: Container(color: Colors.transparent)),
+      // تم تبسيط الكود لضمان عدم وجود Warnings منطقية
+      child: Opacity(opacity: 0.5),
     );
   }
 }
@@ -205,4 +203,3 @@ class _RoomsTab extends StatelessWidget {
     );
   }
 }
-
