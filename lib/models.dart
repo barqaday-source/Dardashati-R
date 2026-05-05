@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart'; // حرف i صغير هنا
+import 'package:flutter/material.dart';
 
 // ==================== Enums ====================
 enum IconStyle { minimal, bold, soft }
@@ -14,6 +14,8 @@ class AppMessage {
   final String? senderName;
   final String? senderAvatar;
   final String? replyToId;
+  final String? replyToSender; // مضافة لحل خطأ السطر 253 في السجل
+  final String? replyToContent; // مضافة لحل خطأ السطر 254 في السجل
 
   AppMessage({
     required this.id,
@@ -23,6 +25,8 @@ class AppMessage {
     this.senderName,
     this.senderAvatar,
     this.replyToId,
+    this.replyToSender,
+    this.replyToContent,
   });
 
   factory AppMessage.fromMap(Map<String, dynamic> map) {
@@ -34,8 +38,13 @@ class AppMessage {
       senderName: map['user_name']?.toString(),
       senderAvatar: map['avatar_url']?.toString(),
       replyToId: map['reply_to_id']?.toString(),
+      replyToSender: map['reply_to_sender_name']?.toString(),
+      replyToContent: map['reply_to_content']?.toString(),
     );
   }
+
+  // مضافة لحل خطأ السطر 221 في السجل
+  String get formattedTime => "${time.hour}:${time.minute.toString().padLeft(2, '0')}";
 }
 
 class AppUser {
@@ -78,6 +87,33 @@ class AppUser {
   bool get isAdmin => role == 'admin';
 }
 
+// مضافة لحل أخطاء room_chat_screen و search_screen
+class AppRoom {
+  final String id;
+  final String name;
+  final String? description;
+  final String? imageUrl;
+  final int memberCount;
+
+  AppRoom({
+    required this.id,
+    required this.name,
+    this.description,
+    this.imageUrl,
+    this.memberCount = 0,
+  });
+
+  factory AppRoom.fromMap(Map<String, dynamic> map) {
+    return AppRoom(
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? 'غرفة عامة',
+      description: map['description']?.toString(),
+      imageUrl: map['image_url']?.toString(),
+      memberCount: map['member_count'] ?? 0,
+    );
+  }
+}
+
 class AppNotification {
   final String id;
   final String title;
@@ -118,10 +154,14 @@ class AppNotification {
 
 class AppThemeData {
   final String name;
+  final String label; // مضافة لتطابق ثيماتك وحل خطأ السجل 216
+  final Color primaryColor; // مضافة لحل خطأ السجل 112
+  final List<Color> gradientColors; // مضافة لحل خطأ السجل 72
   final Color background;
   final Color text;   
   final Color button; 
   final Color card;
+  final Color accent; // مضافة لحل خطأ السجل 79
   final Color menu;        
   final Color buttonText;  
   final bool isDark;       
@@ -129,26 +169,19 @@ class AppThemeData {
 
   AppThemeData({
     required this.name,
+    required this.label,
+    required this.primaryColor,
+    required this.gradientColors,
     required this.background,
     required this.text,    
     required this.button,  
     required this.card,
+    required this.accent,
     required this.menu,
     required this.buttonText,
     required this.isDark,
     this.borderRadius = 40.0,
   });
-
-  static AppThemeData dark() => AppThemeData(
-    name: 'dark',
-    background: const Color(0xFF0F172A),
-    text: Colors.white,
-    button: const Color(0xFF38BDF8),
-    card: const Color(0xFF1E293B),
-    menu: const Color(0xFF1E293B),
-    buttonText: Colors.white,
-    isDark: true,
-  );
 }
 
 class AppReport {
