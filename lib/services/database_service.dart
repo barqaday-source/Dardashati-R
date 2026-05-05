@@ -9,8 +9,14 @@ class DatabaseService {
   static User? get currentUser => _client.auth.currentUser;
   static String? get uid => _client.auth.currentUser?.id;
 
-  // ==================== 1. وظائف الإدارة والتحقق ====================
-  
+  // --- تحديث بيانات الملف الشخصي (كانت مفقودة وتسببت في خطأ Settings) ---
+  static Future<void> updateProfile({required String fullName, String? bio}) async {
+    await _client.from('users').update({
+      'full_name': fullName,
+      'bio': bio,
+    }).eq('id', uid!);
+  }
+
   static Stream<List<Map<String, dynamic>>> getAdminUsersStream() {
     return _client.from('users').stream(primaryKey: ['id']).order('username');
   }
@@ -24,7 +30,6 @@ class DatabaseService {
     await _client.auth.signOut();
   }
 
-  // +++ إضافة ناقصة لصفحة الـ Login +++
   static Future<AuthResponse?> signInWithGoogle() async {
     const webClientId = '62134907551-ofam7s8j4m4id3qtdqac6vrk7ui2d2o3.apps.googleusercontent.com';
     final googleSignIn = GoogleSignIn(serverClientId: webClientId);
@@ -38,8 +43,6 @@ class DatabaseService {
     );
   }
 
-  // ==================== 2. الرسائل الخاصة ====================
-
   static Future<List<AppMessage>> getPrivateMessages(String otherUserId) async {
     final res = await _client.from('messages')
         .select()
@@ -48,7 +51,6 @@ class DatabaseService {
     return (res as List).map((m) => AppMessage.fromMap(m)).toList();
   }
 
-  // +++ إضافة ناقصة لصفحة الشات الخاص +++
   static Stream<List<Map<String, dynamic>>> getMessagesStream(String otherUserId) {
     return _client.from('messages').stream(primaryKey: ['id']).order('created_at', ascending: true);
   }
@@ -66,8 +68,6 @@ class DatabaseService {
     await _client.from('messages').update({'is_read': true})
         .eq('receiver_id', uid!).eq('user_id', otherUserId);
   }
-
-  // ==================== 3. نظام الغرف ====================
 
   static Future<void> joinRoom(String roomId) async {
     await _client.from('room_members').insert({'room_id': roomId, 'user_id': uid!});
@@ -91,13 +91,10 @@ class DatabaseService {
     });
   }
 
-  // +++ إضافة ناقصة لصفحة الغرف +++
   static Future<List<AppUser>> getRoomMembers(String roomId) async {
     final res = await _client.from('room_members').select('users(*)').eq('room_id', roomId);
     return (res as List).map((u) => AppUser.fromMap(u['users'])).toList();
   }
-
-  // ==================== 4. الإشعارات والتقارير والمظهر ====================
 
   static Future<List<AppNotification>> getNotifications() async {
     if (uid == null) return [];
@@ -105,7 +102,6 @@ class DatabaseService {
     return (res as List).map((n) => AppNotification.fromMap(n)).toList();
   }
 
-  // +++ إضافة ناقصة لصفحة الإشعارات (فردي) +++
   static Future<void> markNotificationRead(String id) async {
     await _client.from('notifications').update({'is_read': true}).eq('id', id);
   }
@@ -122,8 +118,6 @@ class DatabaseService {
     await _client.from('reports').insert({'reporter_id': uid!, 'reported_id': targetId, 'reason': reason});
   }
 
-  // ==================== 5. البحث والملف الشخصي ====================
-
   static Future<AppUser?> getUserById(String id) async {
     try {
       final data = await _client.from('users').select().eq('id', id).single();
@@ -132,14 +126,13 @@ class DatabaseService {
   }
 
   static Future<List<AppUser>> searchUsers(String query) async {
-    final res = await _client.from('users').select().ilike('username', '%$query%');
+    // تم تعديل الحقل ليكون full_name ليتوافق مع الـ Schema
+    final res = await _client.from('users').select().ilike('full_name', '%$query%');
     return (res as List).map((u) => AppUser.fromMap(u)).toList();
   }
 
-  // +++ إضافة ناقصة لصفحة البحث (غرف) +++
   static Future<List<AppRoom>> searchRooms(String query) async {
     final res = await _client.from('rooms').select().ilike('name', '%$query%');
     return (res as List).map((r) => AppRoom.fromMap(r)).toList();
   }
-}
 }
