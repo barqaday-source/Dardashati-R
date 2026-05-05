@@ -88,8 +88,9 @@ class _DardashatiAppState extends State<DardashatiApp> {
         fontFamily: 'Tajawal', 
         useMaterial3: true,
         brightness: _currentTheme.isDark ? Brightness.dark : Brightness.light,
-        // إضافة اللون الأساسي للثيم ليتوافق مع أجزاء النظام
-        primaryColor: _currentTheme.primaryColor,
+        // تم استبدال primaryColor بـ button لتتوافق مع الثيم الجديد
+        primaryColor: _currentTheme.button,
+        scaffoldBackgroundColor: _currentTheme.background,
       ),
       home: !_initialized 
           ? _buildLoadingScreen() 
@@ -100,7 +101,7 @@ class _DardashatiAppState extends State<DardashatiApp> {
   Widget _buildLoadingScreen() {
     return Scaffold(
       backgroundColor: _currentTheme.background,
-      body: Center(child: CircularProgressIndicator(color: _currentTheme.primaryColor)),
+      body: Center(child: CircularProgressIndicator(color: _currentTheme.button)),
     );
   }
 }
@@ -119,11 +120,10 @@ class _AuthGate extends StatelessWidget {
         final session = Supabase.instance.client.auth.currentSession;
 
         if (session != null) {
-          // تم إصلاح الخطأ هنا: تمرير جميع الحقول المطلوبة لـ AppUser (حل خطأ السطر 135)
           final user = AppUser(
             id: session.user.id,
             fullName: session.user.userMetadata?['full_name'] ?? 'مستخدم',
-            email: session.user.email ?? '', // حقل مطلوب
+            email: session.user.email ?? '', 
             avatarUrl: session.user.userMetadata?['avatar_url'] ?? '',
             isOnline: true,
             themePreference: theme.name,
@@ -156,7 +156,8 @@ class UpdatePasswordScreen extends StatelessWidget {
               obscureText: true,
               decoration: InputDecoration(
                 labelText: 'أدخل كلمة المرور الجديدة',
-                labelStyle: TextStyle(color: theme.primaryColor),
+                // تم استبدال primaryColor بـ button
+                labelStyle: TextStyle(color: theme.button),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
               ),
             ),
@@ -181,4 +182,3 @@ class UpdatePasswordScreen extends StatelessWidget {
     );
   }
 }
-
