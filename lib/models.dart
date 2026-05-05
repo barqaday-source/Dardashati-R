@@ -151,64 +151,6 @@ class AppNotification {
       case 'system': return Icons.info_outline;
       case 'alert': return Icons.warning_amber_rounded;
       default: return Icons.notifications_none;
-    }
-  }
-}
-
-class AppThemeData {
-  final String name;
-  final String label; 
-  final Color primaryColor; 
-  final List<Color> gradientColors; 
-  final Color background;
-  final Color text;   
-  final Color button; 
-  final Color card;
-  final Color accent; 
-  final Color menu;        
-  final Color buttonText;  
-  final bool isDark;       
-  final double borderRadius;
-
-  AppThemeData({
-    required this.name,
-    required this.label,
-    required this.primaryColor,
-    required this.gradientColors,
-    required this.background,
-    required this.text,    
-    required this.button,  
-    required this.card,
-    required this.accent,
-    required this.menu,
-    required this.buttonText,
-    required this.isDark,
-    this.borderRadius = 40.0,
-  });
-}
-
-class AppReport {
-  final String id;
-  final String reporterId;
-  final String reportedId;
-  final String reason;
-  final DateTime createdAt;
-
-  AppReport({
-    required this.id,
-    required this.reporterId,
-    required this.reportedId,
-    required this.reason,
-    required this.createdAt,
-  });
-
-  factory AppReport.fromMap(Map<String, dynamic> map) {
-    return AppReport(
-      id: map['id']?.toString() ?? '',
-      reporterId: map['reporter_id']?.toString() ?? '',
-      reportedId: map['reported_id']?.toString() ?? '',
-      reason: map['reason']?.toString() ?? '',
-      createdAt: DateTime.parse(map['created_at'] ?? DateTime.now().toIso8601String()),
     );
   }
 }
