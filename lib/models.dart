@@ -14,8 +14,8 @@ class AppMessage {
   final String? senderName;
   final String? senderAvatar;
   final String? replyToId;
-  final String? replyToSender; // مضافة لحل خطأ السطر 253 في السجل
-  final String? replyToContent; // مضافة لحل خطأ السطر 254 في السجل
+  final String? replyToSender; 
+  final String? replyToContent; 
 
   AppMessage({
     required this.id,
@@ -43,7 +43,6 @@ class AppMessage {
     );
   }
 
-  // مضافة لحل خطأ السطر 221 في السجل
   String get formattedTime => "${time.hour}:${time.minute.toString().padLeft(2, '0')}";
 }
 
@@ -87,13 +86,13 @@ class AppUser {
   bool get isAdmin => role == 'admin';
 }
 
-// مضافة لحل أخطاء room_chat_screen و search_screen
 class AppRoom {
   final String id;
   final String name;
   final String? description;
   final String? imageUrl;
   final int memberCount;
+  final IconData icon; // تم إضافتها لحل خطأ السطر 148 في السجل
 
   AppRoom({
     required this.id,
@@ -101,7 +100,11 @@ class AppRoom {
     this.description,
     this.imageUrl,
     this.memberCount = 0,
+    this.icon = Icons.meeting_room_rounded, // قيمة افتراضية
   });
+
+  // تم إضافتها لحل خطأ السطر 154 في السجل
+  String get membersCountLabel => "$memberCount عضو";
 
   factory AppRoom.fromMap(Map<String, dynamic> map) {
     return AppRoom(
@@ -154,14 +157,14 @@ class AppNotification {
 
 class AppThemeData {
   final String name;
-  final String label; // مضافة لتطابق ثيماتك وحل خطأ السجل 216
-  final Color primaryColor; // مضافة لحل خطأ السجل 112
-  final List<Color> gradientColors; // مضافة لحل خطأ السجل 72
+  final String label; 
+  final Color primaryColor; 
+  final List<Color> gradientColors; 
   final Color background;
   final Color text;   
   final Color button; 
   final Color card;
-  final Color accent; // مضافة لحل خطأ السجل 79
+  final Color accent; 
   final Color menu;        
   final Color buttonText;  
   final bool isDark;       
