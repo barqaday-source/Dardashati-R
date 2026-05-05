@@ -24,7 +24,21 @@ class DatabaseService {
     await _client.auth.signOut();
   }
 
-  // ==================== 2. الرسائل الخاصة (إصلاح أخطاء الشات الخاص) ====================
+  // +++ إضافة ناقصة لصفحة الـ Login +++
+  static Future<AuthResponse?> signInWithGoogle() async {
+    const webClientId = '62134907551-ofam7s8j4m4id3qtdqac6vrk7ui2d2o3.apps.googleusercontent.com';
+    final googleSignIn = GoogleSignIn(serverClientId: webClientId);
+    final googleUser = await googleSignIn.signIn();
+    if (googleUser == null) return null;
+    final googleAuth = await googleUser.authentication;
+    return await _client.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: googleAuth.idToken!,
+      accessToken: googleAuth.accessToken,
+    );
+  }
+
+  // ==================== 2. الرسائل الخاصة ====================
 
   static Future<List<AppMessage>> getPrivateMessages(String otherUserId) async {
     final res = await _client.from('messages')
@@ -32,6 +46,11 @@ class DatabaseService {
         .or('and(user_id.eq.$uid,receiver_id.eq.$otherUserId),and(user_id.eq.$otherUserId,receiver_id.eq.$uid)')
         .order('created_at');
     return (res as List).map((m) => AppMessage.fromMap(m)).toList();
+  }
+
+  // +++ إضافة ناقصة لصفحة الشات الخاص +++
+  static Stream<List<Map<String, dynamic>>> getMessagesStream(String otherUserId) {
+    return _client.from('messages').stream(primaryKey: ['id']).order('created_at', ascending: true);
   }
 
   static Future<void> sendMessage(String receiverId, String content, {String? replyToId}) async {
@@ -48,7 +67,7 @@ class DatabaseService {
         .eq('receiver_id', uid!).eq('user_id', otherUserId);
   }
 
-  // ==================== 3. نظام الغرف (إصلاح أخطاء Room Chat) ====================
+  // ==================== 3. نظام الغرف ====================
 
   static Future<void> joinRoom(String roomId) async {
     await _client.from('room_members').insert({'room_id': roomId, 'user_id': uid!});
@@ -72,12 +91,23 @@ class DatabaseService {
     });
   }
 
+  // +++ إضافة ناقصة لصفحة الغرف +++
+  static Future<List<AppUser>> getRoomMembers(String roomId) async {
+    final res = await _client.from('room_members').select('users(*)').eq('room_id', roomId);
+    return (res as List).map((u) => AppUser.fromMap(u['users'])).toList();
+  }
+
   // ==================== 4. الإشعارات والتقارير والمظهر ====================
 
   static Future<List<AppNotification>> getNotifications() async {
     if (uid == null) return [];
     final res = await _client.from('notifications').select().eq('user_id', uid!).order('created_at');
     return (res as List).map((n) => AppNotification.fromMap(n)).toList();
+  }
+
+  // +++ إضافة ناقصة لصفحة الإشعارات (فردي) +++
+  static Future<void> markNotificationRead(String id) async {
+    await _client.from('notifications').update({'is_read': true}).eq('id', id);
   }
 
   static Future<void> markAllNotificationsRead() async {
@@ -105,4 +135,11 @@ class DatabaseService {
     final res = await _client.from('users').select().ilike('username', '%$query%');
     return (res as List).map((u) => AppUser.fromMap(u)).toList();
   }
+
+  // +++ إضافة ناقصة لصفحة البحث (غرف) +++
+  static Future<List<AppRoom>> searchRooms(String query) async {
+    final res = await _client.from('rooms').select().ilike('name', '%$query%');
+    return (res as List).map((r) => AppRoom.fromMap(r)).toList();
+  }
+}
 }
