@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // استدعاء المكونات المعتمدة لمشروع دردشاتي
 import 'package:dardashati/models.dart';
-import 'package:dardashati/app_theme.dart'; // الملف الذي يحتوي على AppThemes
+import 'package:dardashati/app_theme.dart'; 
 import 'package:dardashati/services/database_service.dart';
 import 'package:dardashati/home_screen.dart';
 import 'package:dardashati/login_screen.dart';
@@ -14,12 +13,11 @@ import 'package:dardashati/login_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. إعدادات الشاشة (الوضع العمودي فقط لضمان جمالية التصميم)
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 
-  // 2. تهيئة Supabase (تأكد من وضع رابط الـ URL والـ Anon Key الخاص بك)
+  // تأكد من وضع قيم Supabase الحقيقية هنا
   await Supabase.initialize(
     url: 'YOUR_SUPABASE_URL', 
     anonKey: 'YOUR_SUPABASE_ANON_KEY',
@@ -36,7 +34,6 @@ class DardashatiApp extends StatefulWidget {
 }
 
 class _DardashatiAppState extends State<DardashatiApp> {
-  // الثيم الافتراضي عند أول تشغيل
   AppThemeData _currentTheme = AppThemes.allThemes[0];
   bool _initialized = false;
   final _navigatorKey = GlobalKey<NavigatorState>();
@@ -48,23 +45,18 @@ class _DardashatiAppState extends State<DardashatiApp> {
     _listenToAuthChanges();
   }
 
-  // تحميل الإعدادات الأولية (الثيم المحفوظ)
   Future<void> _loadInitialSettings() async {
     try {
-      // محاولة جلب الثيم من قاعدة البيانات إذا كان المستخدم مسجلاً
       if (Supabase.instance.client.auth.currentUser != null) {
-        // هنا يمكن استدعاء دالة جلب الثيم من DatabaseService
-        // final savedThemeName = await DatabaseService.getUserTheme();
-        // _applyThemeByName(savedThemeName);
+        // يمكن تفعيل جلب الثيم هنا لاحقاً
       }
     } catch (e) {
       debugPrint("Theme Error: $e");
     } finally {
-      setState(() => _initialized = true);
+      if (mounted) setState(() => _initialized = true);
     }
   }
 
-  // مراقبة حالة الدخول للتعامل مع روابط استعادة كلمة المرور
   void _listenToAuthChanges() {
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (data.event == AuthChangeEvent.passwordRecovery) {
@@ -77,8 +69,6 @@ class _DardashatiAppState extends State<DardashatiApp> {
 
   void _changeTheme(AppThemeData newTheme) {
     setState(() => _currentTheme = newTheme);
-    // حفظ الثيم في السحابة ليكون متاحاً على أي جهاز آخر
-    // DatabaseService.saveUserTheme(newTheme.name);
   }
 
   @override
@@ -87,7 +77,6 @@ class _DardashatiAppState extends State<DardashatiApp> {
       navigatorKey: _navigatorKey,
       title: 'دردشاتي',
       debugShowCheckedModeBanner: false,
-      // دعم كامل للغة العربية من اليمين لليسار (RTL)
       locale: const Locale('ar', 'SA'),
       supportedLocales: const [Locale('ar', 'SA')],
       localizationsDelegates: const [
@@ -96,9 +85,11 @@ class _DardashatiAppState extends State<DardashatiApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: ThemeData(
-        fontFamily: 'Tajawal', // الخط العربي المعتمد للتطبيق
+        fontFamily: 'Tajawal', 
         useMaterial3: true,
         brightness: _currentTheme.isDark ? Brightness.dark : Brightness.light,
+        // إضافة اللون الأساسي للثيم ليتوافق مع أجزاء النظام
+        primaryColor: _currentTheme.primaryColor,
       ),
       home: !_initialized 
           ? _buildLoadingScreen() 
@@ -114,9 +105,6 @@ class _DardashatiAppState extends State<DardashatiApp> {
   }
 }
 
-// -------------------------------------------------------------------------
-// بوابة التحقق (AuthGate): هي التي تقرر أين يذهب المستخدم
-// -------------------------------------------------------------------------
 class _AuthGate extends StatelessWidget {
   final AppThemeData theme;
   final Function(AppThemeData) onThemeChanged;
@@ -131,26 +119,24 @@ class _AuthGate extends StatelessWidget {
         final session = Supabase.instance.client.auth.currentSession;
 
         if (session != null) {
-          // المستخدم مسجل دخول -> وجهه للرئيسية
+          // تم إصلاح الخطأ هنا: تمرير جميع الحقول المطلوبة لـ AppUser (حل خطأ السطر 135)
           final user = AppUser(
             id: session.user.id,
             fullName: session.user.userMetadata?['full_name'] ?? 'مستخدم',
+            email: session.user.email ?? '', // حقل مطلوب
             avatarUrl: session.user.userMetadata?['avatar_url'] ?? '',
             isOnline: true,
+            themePreference: theme.name,
           );
           return HomeScreen(currentUser: user, theme: theme, onThemeChanged: onThemeChanged);
         }
 
-        // المستخدم غير مسجل -> وجهه لشاشة الدخول
         return LoginScreen(theme: theme, onThemeChanged: onThemeChanged, isLogin: true);
       },
     );
   }
 }
 
-// -------------------------------------------------------------------------
-// شاشة تحديث كلمة المرور (عند استلام رابط الإيميل)
-// -------------------------------------------------------------------------
 class UpdatePasswordScreen extends StatelessWidget {
   final AppThemeData theme;
   const UpdatePasswordScreen({super.key, required this.theme});
@@ -195,3 +181,4 @@ class UpdatePasswordScreen extends StatelessWidget {
     );
   }
 }
+
