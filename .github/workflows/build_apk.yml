@@ -1,4 +1,4 @@
-name: Build Dardashati App V2
+name: Build Dardashati App Professional
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,48 +13,46 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. جلب الكود من المستودع
+      # 1. جلب الكود بالكامل
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. إعداد الجافا (متوافق مع Gradle 8.0)
+      # 2. إعداد الجافا (النسخة 17 هي الأنسب لـ Gradle 8+)
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. إعداد فلاتر
+      # 3. إعداد فلاتر (النسخة المستقرة المحددة لمشروعك)
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6'
           cache: true
 
-      # 4. إصلاح ملفات Gradle المفقودة (حل مشكلة الرفع من الهاتف)
-      - name: Restore Gradle Wrapper
-        run: |
-          # هذا الأمر سيقوم بتوليد ملف gradlew وملف gradle-wrapper.jar تلقائياً داخل نظام GitHub
-          # حتى لو كانت مفقودة في مستودعك، سيتم إنشاؤها هنا لضمان نجاح البناء.
-          flutter pub get
-          cd android
-          gradle wrapper --gradle-version 8.0
-          chmod +x gradlew
-          cd ..
-
-      # 5. جلب المكتبات (Dependencies)
-      - name: Get Dependencies
+      # 4. تثبيت المكتبات والتأكد من توافقها
+      - name: Install Dependencies
         run: flutter pub get
 
-      # 6. بناء الـ APK (مع معالجة الأيقونات والشاشات)
-      - name: Build APK Release
+      # 5. بناء محرك Gradle (الحل الجذري لنقص ملفات الهاتف)
+      - name: Configure Gradle Wrapper
+        working-directory: android
         run: |
-          # خيار --no-tree-shake-icons مهم جداً لتجنب فشل البناء بسبب مكتبات الأيقونات الخارجية
+          # هذا الأمر ينشئ ملفات gradlew و gradlew.jar الأصلية والمتوافقة 100%
+          # لضمان عدم حدوث خطأ "No such file or directory" مجدداً
+          gradle wrapper --gradle-version 8.0 --distribution-type all
+          chmod +x gradlew
+
+      # 6. البناء النهائي للـ APK
+      - name: Build Release APK
+        run: |
+          # استخدام --no-tree-shake-icons لضمان عدم تعارض الأيقونات والخطوط العربية
           flutter build apk --release --no-tree-shake-icons
 
-      # 7. رفع ملف الـ APK الناتج كملف جاهز للتحميل
-      - name: Upload APK Artifact
+      # 7. رفع الملف النهائي كـ Artifact
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: dardashati-release-apk
+          name: Dardashati-Final-APK
           path: build/app/outputs/flutter-apk/app-release.apk
