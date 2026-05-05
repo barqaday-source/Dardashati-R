@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:dardashati/services/database_service.dart'; // استيراد الخدمة التي أصلحناها
-import 'package:dardashati/models.dart';
+import 'package:dardashati/services/database_service.dart';
+// تم حذف استيراد models.dart لأنه غير مستخدم هنا ويسبب فشل البناء في GitHub
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -14,16 +14,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('لوحة تحكم النظام'),
+        title: const Text('لوحة تحكم النظام', style: TextStyle(fontFamily: 'Tajawal')),
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             onPressed: () => DatabaseService.signOut(),
           ),
         ],
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        // استخدام الدالة التي عرفناها في ملف الـ Service
         stream: DatabaseService.getAdminUsersStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -31,12 +31,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
           }
           
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('لا يوجد مستخدمين حالياً'));
+            return const Center(child: Text('لا يوجد مستخدمين حالياً', style: TextStyle(fontFamily: 'Tajawal')));
           }
 
           final users = snapshot.data!;
 
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 10),
             itemCount: users.length,
             itemBuilder: (context, index) {
               final user = users[index];
@@ -44,19 +45,34 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundImage: NetworkImage(user['avatar_url'] ?? ''),
-                  child: user['avatar_url'] == null ? const Icon(Icons.person) : null,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: (user['avatar_url'] != null && user['avatar_url'].toString().isNotEmpty) 
+                      ? NetworkImage(user['avatar_url']) 
+                      : null,
+                  child: (user['avatar_url'] == null || user['avatar_url'].toString().isEmpty) 
+                      ? const Icon(Icons.person, color: Colors.grey) 
+                      : null,
                 ),
-                title: Text(user['username'] ?? 'مستخدم غير معروف'),
+                title: Text(user['username'] ?? user['full_name'] ?? 'مستخدم غير معروف', 
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text(user['email'] ?? ''),
-                trailing: Switch(
-                  value: isBanned,
-                  activeColor: Colors.red,
-                  onChanged: (value) async {
-                    // استدعاء دالة الحظر من ملف الخدمة
-                    await DatabaseService.toggleUserBan(user['id'], value);
-                    setState(() {}); // تحديث الواجهة
-                  },
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(isBanned ? 'محظور' : 'نشط', 
+                        style: TextStyle(color: isBanned ? Colors.red : Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                    SizedBox(
+                      height: 30,
+                      child: Switch(
+                        value: isBanned,
+                        activeColor: Colors.red,
+                        onChanged: (value) async {
+                          await DatabaseService.toggleUserBan(user['id'], value);
+                          // ملاحظة: الـ StreamBuilder سيقوم بالتحديث تلقائياً عند تغيير البيانات في قاعدة البيانات
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
