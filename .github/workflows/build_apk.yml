@@ -1,8 +1,4 @@
-name: Build Dardashati App Professional
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true 
+name: Build Dardashati Professional
 
 on:
   push:
@@ -26,29 +22,28 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6'
-          cache: true
 
-      # إصلاح اسم الحزمة وهيكل الأندرويد في خطوة واحدة
-      - name: Repair and Reconstruct Android
+      # 1. تصحيح اسم المشروع (قاعدة أساسية في فلاتر)
+      - name: Fix Package Name
         run: |
-          # تغيير اسم المشروع داخلياً ليكون مقبولاً لدى فلاتر (حروف صغيرة وبدون شرطة)
           sed -i 's/name: Dardashati-R/name: dardashati_r/g' pubspec.yaml
           flutter pub get
-          flutter create . --platforms android
-          
-      - name: Setup Gradle Wrapper
-        working-directory: android
-        run: |
-          gradle wrapper --gradle-version 7.6.3 --distribution-type all
-          chmod +x gradlew
 
-      - name: Build Release APK
+      # 2. إنشاء مجلد أندرويد "أصلي" (بدلاً من المجلد التالف المرفوع)
+      - name: Recreate Android Project
         run: |
-          # البناء باستخدام الاسم الجديد المصلح
+          # حذف المجلد القديم لضمان عدم وجود "ترقيع"
+          rm -rf android
+          # إنشاء مجلد أندرويد جديد بمعايير جوجل الصحيحة
+          flutter create . --platforms android
+
+      # 3. بناء التطبيق باستخدام محرك فلاتر الرسمي
+      - name: Build APK
+        run: |
           flutter build apk --release --no-tree-shake-icons
 
-      - name: Upload APK Artifact
+      - name: Upload Final APK
         uses: actions/upload-artifact@v4
         with:
-          name: Dardashati-Final-Release
+          name: Dardashati-Final
           path: build/app/outputs/flutter-apk/app-release.apk
