@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:dardashati/models.dart'; // المسار المعتمد الجديد
+import 'package:dardashati/models.dart'; 
 
 class AppThemes {
   static List<AppThemeData> allThemes = [
     
-    // 1. الثيم الافتراضي (أمواج دردشاتي) - لمسة زجاجية ناعمة
+    // 1. أمواج دردشاتي
     AppThemeData(
       name: 'dardashati_wave',
       label: 'أمواج دردشاتي',
@@ -13,16 +13,15 @@ class AppThemes {
       background: const Color(0xFFF6F3FF),
       text: const Color(0xFF2A2750),      
       button: const Color(0xFF7C6BE0),    
-      // تقليل الشفافية لزيادة وضوح التأثير الزجاجي
       card: Colors.white.withOpacity(0.5), 
       accent: const Color(0xFF3FB8B0),   
       menu: Colors.white.withOpacity(0.85),
       buttonText: Colors.white,
       isDark: false,
-      borderRadius: 40.0, // توحيد الانحناء الكبير الذي تفضله
+      borderRadius: 40.0,
     ),
     
-    // 2. الثيم المودرن الزجاجي (Soft Glass)
+    // 2. مودرن زجاجي
     AppThemeData(
       name: 'soft_glass',
       label: 'مودرن زجاجي',
@@ -39,7 +38,7 @@ class AppThemes {
       borderRadius: 40.0,
     ),
     
-    // 3. الثيم الملكي (Royal Dark) - فخامة الذهب والأسود
+    // 3. الملكي المذهب
     AppThemeData(
       name: 'royal_gold',
       label: 'الملكي المذهب',
@@ -56,7 +55,7 @@ class AppThemes {
       borderRadius: 40.0,
     ),
     
-    // 4. الغابة الليلية (Night Forest) - الراحة البصرية
+    // 4. الغابة الليلية
     AppThemeData(
       name: 'night_forest',
       label: 'الغابة الليلية',
@@ -74,6 +73,5 @@ class AppThemes {
     ),
   ];
 
-  // دالة لجلب الثيم الافتراضي عند تشغيل التطبيق لأول مرة
   static AppThemeData get defaultTheme => allThemes[0];
 }
