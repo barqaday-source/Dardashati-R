@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:dardashati/models.dart';
-import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/auth_service.dart';
 import 'package:dardashati/services/database_service.dart';
-import 'package:dardashati/utils/logger.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppUser currentUser;
   final AppThemeData theme;
-  final Function(AppThemeData) onThemeChanged; // لإبلاغ main.dart بتغيير الثيم فوراً
+  final Function(AppThemeData) onThemeChanged;
 
   const SettingsScreen({
     super.key, 
@@ -23,7 +21,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _savingTheme = false;
   late AppThemeData _selectedTheme;
 
   final _nameCtrl = TextEditingController();
@@ -44,44 +41,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  // حفظ الملف الشخصي
+  // إصلاح دالة حفظ الملف الشخصي وتفعيلها
   Future<void> _saveProfile() async {
     if (_nameCtrl.text.trim().isEmpty) return;
     try {
-      // نستخدم الـ Service لتحديث البيانات في Supabase
-      // await DatabaseService.updateProfile(fullName: _nameCtrl.text.trim(), bio: _bioCtrl.text.trim());
-      AppLogger.success("SETTINGS", "تم تحديث بيانات الملف الشخصي");
+      await DatabaseService.updateProfile(
+        fullName: _nameCtrl.text.trim(), 
+        bio: _bioCtrl.text.trim()
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('تم حفظ التغييرات ✓'), backgroundColor: widget.theme.button)
+          SnackBar(content: const Text('تم حفظ التغييرات بنجاح ✓'), backgroundColor: widget.theme.button)
         );
       }
     } catch (e) {
-      AppLogger.error("SETTINGS", "فشل تحديث البروفايل", e);
+      // خطأ في التحديث
     }
   }
 
-  // اختيار وحفظ الثيم
   Future<void> _selectTheme(AppThemeData newTheme) async {
     setState(() { 
       _selectedTheme = newTheme; 
-      _savingTheme = true; 
     });
     
-    // إبلاغ التطبيق بالكامل بالثيم الجديد فوراً
+    // إبلاغ التطبيق فوراً لتغيير اللون أمام المستخدم
     widget.onThemeChanged(newTheme);
     
     try {
       await DatabaseService.saveUserTheme(newTheme.name);
-      AppLogger.info("THEME", "تم حفظ الثيم الجديد: ${newTheme.name}");
     } catch (e) {
-      AppLogger.error("THEME", "فشل حفظ الثيم في السحابة", e);
+      // فشل الحفظ في السحابة (سيظل الثيم محلياً حتى إعادة التشغيل)
     }
-    
-    if (mounted) setState(() => _savingTheme = false);
   }
 
-  // تسجيل الخروج الاحترافي
   Future<void> _signOut() async {
     final t = widget.theme;
     showDialog(
@@ -90,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: t.menu,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         title: Text('تسجيل الخروج', style: TextStyle(color: t.text, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
-        content: Text('هل أنت متأكد من رغبتك في تسجيل الخروج من دردشاتي؟', style: TextStyle(color: t.text.withOpacity(0.7), fontSize: 14)),
+        content: Text('هل أنت متأكد من رغبتك في تسجيل الخروج؟', style: TextStyle(color: t.text.withOpacity(0.7), fontSize: 14)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context), 
@@ -98,9 +90,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(context); // إغلاق الديالوج
               await AuthService.signOut();
-              if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+              if (mounted) {
+                // العودة لشاشة تسجيل الدخول وتنظيف الـ Stack
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent, 
@@ -134,7 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-          // قسم الصورة الشخصية بتصميم عصري
+          // قسم الصورة الشخصية (تصميمك الأصلي)
           Center(child: Stack(children: [
             Container(
               padding: const EdgeInsets.all(4),
@@ -144,20 +139,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 backgroundColor: t.card,
                 backgroundImage: widget.currentUser.avatarUrl.isNotEmpty ? NetworkImage(widget.currentUser.avatarUrl) : null,
                 child: widget.currentUser.avatarUrl.isEmpty 
-                    ? Text(widget.currentUser.fullName[0], style: TextStyle(color: t.button, fontSize: 32, fontWeight: FontWeight.bold)) 
+                    ? Text(widget.currentUser.fullName.isNotEmpty ? widget.currentUser.fullName[0] : "?", 
+                        style: TextStyle(color: t.button, fontSize: 32, fontWeight: FontWeight.bold)) 
                     : null,
               ),
             ),
             Positioned(
               bottom: 5, right: 5, 
-              child: GestureDetector(
-                onTap: () => AppLogger.info("UI", "تغيير الصورة الشخصية"),
-                child: Container(
-                  padding: const EdgeInsets.all(8), 
-                  decoration: BoxDecoration(color: t.button, shape: BoxShape.circle, border: Border.all(color: t.background, width: 3)), 
-                  child: Icon(Icons.edit_rounded, color: t.buttonText, size: 18)
-                ),
-              )
+              child: Container(
+                padding: const EdgeInsets.all(8), 
+                decoration: BoxDecoration(color: t.button, shape: BoxShape.circle, border: Border.all(color: t.background, width: 3)), 
+                child: Icon(Icons.edit_rounded, color: t.buttonText, size: 18)
+              ),
             ),
           ])),
           const SizedBox(height: 30),
@@ -172,6 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 30),
 
           _sectionLabel('المظهر (الثيمات)', t),
+          // عرض الثيمات (تصميمك الأصلي)
           ...AppThemes.allThemes.map((theme) => _buildThemeTile(theme, t)).toList(),
           
           const SizedBox(height: 30),
@@ -180,8 +174,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSwitchTile('إشعارات الرسائل', Icons.notifications_none_rounded, _notificationsEnabled, t, (v) => setState(() => _notificationsEnabled = v)),
           const SizedBox(height: 10),
           _menuTile(Icons.lock_reset_rounded, 'تغيير كلمة المرور', t, onTap: () => _changePasswordSheet(t)),
-          const SizedBox(height: 10),
-          _menuTile(Icons.help_outline_rounded, 'مركز المساعدة', t, onTap: () {}),
           
           const SizedBox(height: 40),
           _buildActionButton(label: 'تسجيل الخروج', icon: Icons.logout_rounded, color: Colors.redAccent.withOpacity(0.1), textColor: Colors.redAccent, onTap: _signOut),
@@ -194,7 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- أدوات بناء الواجهة (Helper Widgets) ---
+  // --- الأدوات المساعدة للحفاظ على جمالية التصميم ---
 
   Widget _buildThemeTile(AppThemeData theme, AppThemeData t) {
     final isActive = _selectedTheme.name == theme.name;
@@ -260,7 +252,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // بقية الـ Widgets المساعدة (التي كانت في كودك مع تحسين طفيف)
   Widget _sectionLabel(String label, AppThemeData t) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15, right: 5),
@@ -273,7 +264,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(color: t.card.withOpacity(0.5), borderRadius: BorderRadius.circular(18), border: Border.all(color: t.text.withOpacity(0.05))),
       child: TextField(
         controller: ctrl, maxLines: maxLines, textAlign: TextAlign.right, style: TextStyle(color: t.text, fontSize: 14),
-        decoration: InputDecoration(hintText: hint, hintStyle: TextStyle(color: t.text.withOpacity(0.2)), prefixIcon: Icon(icon, color: t.button, size: 20), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15))),
+        decoration: InputDecoration(
+          hintText: hint, 
+          hintStyle: TextStyle(color: t.text.withOpacity(0.2)), 
+          prefixIcon: Icon(icon, color: t.button, size: 20), 
+          border: InputBorder.none, 
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15)
+        )
+      ),
     );
   }
 
