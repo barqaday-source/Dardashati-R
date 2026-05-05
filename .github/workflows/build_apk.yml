@@ -13,44 +13,40 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. جلب الكود من المستودع
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. إعداد الجافا (النسخة المستقرة 17)
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. إعداد فلاتر (النسخة المتوافقة مع مشروعك)
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6'
           cache: true
 
-      # 4. إعادة بناء هيكل الأندرويد المفقود (بدون ترقيع)
+      # إصلاح اسم الحزمة وهيكل الأندرويد في خطوة واحدة
       - name: Repair and Reconstruct Android
         run: |
+          # تغيير اسم المشروع داخلياً ليكون مقبولاً لدى فلاتر (حروف صغيرة وبدون شرطة)
+          sed -i 's/name: Dardashati-R/name: dardashati_r/g' pubspec.yaml
           flutter pub get
-          # هذا الأمر سيعيد إنشاء كل الملفات المفقودة في مجلد android بشكل أصلي
           flutter create . --platforms android
           
-      # 5. ضبط محرك Gradle بإصدار مستقر
       - name: Setup Gradle Wrapper
         working-directory: android
         run: |
           gradle wrapper --gradle-version 7.6.3 --distribution-type all
           chmod +x gradlew
 
-      # 6. البناء النهائي للـ APK
       - name: Build Release APK
         run: |
+          # البناء باستخدام الاسم الجديد المصلح
           flutter build apk --release --no-tree-shake-icons
 
-      # 7. رفع الملف الجاهز للتحميل
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
