@@ -145,8 +145,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: CircleAvatar(
                 radius: 60,
                 backgroundColor: t.card,
-                backgroundImage: u.avatarUrl.isNotEmpty ? NetworkImage(u.avatarUrl) : null,
-                child: u.avatarUrl.isEmpty ? Text(u.fullName[0], style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: t.button)) : null,
+                backgroundImage: (u.avatarUrl ?? "").isNotEmpty ? NetworkImage(u.avatarUrl!) : null,
+                child: (u.avatarUrl ?? "").isEmpty 
+                  ? Text((u.fullName.isNotEmpty ? u.fullName[0] : "?"), style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: t.button)) 
+                  : null,
               ),
             ),
             if (u.isOnline)
@@ -186,7 +188,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // هنا يتم الربط بـ PrivateChatScreen لاحقاً
+                  // الربط مع المحادثات الخاصة
                 },
                 icon: const Icon(Icons.chat_bubble_rounded, size: 18),
                 label: const Text('إرسال رسالة خاصة', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -216,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         border: Border.all(color: Colors.white.withOpacity(0.05))
       ),
       child: Column(children: [
-        _detailRow(Icons.alternate_email_rounded, 'البريد الإلكتروني', u.email, t),
+        _detailRow(Icons.alternate_email_rounded, 'البريد الإلكتروني', u.email ?? "غير متوفر", t),
         const Divider(height: 30, thickness: 0.5, color: Colors.white10),
         _detailRow(Icons.description_outlined, 'النبذة التعريفية', u.bio ?? 'لا توجد نبذة حالياً', t),
         const Divider(height: 30, thickness: 0.5, color: Colors.white10),
@@ -231,7 +233,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Icon(icon, size: 22, color: t.button.withOpacity(0.6)),
       const SizedBox(width: 15),
       Expanded(
-        // إصلاح الخطأ البرمجي هنا: تم استبدال right بـ end
         child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text(label, style: TextStyle(color: t.text.withOpacity(0.4), fontSize: 12)),
           const SizedBox(height: 4),
