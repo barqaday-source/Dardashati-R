@@ -1,13 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:dardashati/models.dart'; // المسار المعتمد
+import 'package:dardashati/models.dart'; 
+import 'package:dardashati/app_theme.dart'; // هذا السطر يحل أخطاء Undefined class
 import 'package:dardashati/services/database_service.dart';
 import 'package:dardashati/private_chat_screen.dart';
 import 'package:dardashati/notifications_screen.dart';
 import 'package:dardashati/profile_screen.dart';
 import 'package:dardashati/settings_screen.dart';
-// ملاحظة: تأكد من إنشاء هذه الملفات أو استبدالها بصفحات مؤقتة
-// import 'package:dardashati/room_chat_screen.dart'; 
 
 class HomeScreen extends StatefulWidget {
   final AppUser currentUser;
@@ -35,7 +34,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshUnreadCount();
   }
 
-  // تحديث عدد الإشعارات غير المقروءة من السيرفر مباشرة
   Future<void> _refreshUnreadCount() async {
     try {
       final notifications = await DatabaseService.getNotifications();
@@ -51,19 +49,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final t = widget.theme;
     
-    // الصفحات الأساسية للتطبيق
     final List<Widget> pages = [
       _RoomsTab(theme: t, currentUser: widget.currentUser),
       _MessagesTab(theme: t, currentUser: widget.currentUser),
-      const Center(child: Text("قريباً: شاشة البحث")), // Placeholder للبحث
+      const Center(child: Text("قريباً: شاشة البحث")), 
       ProfileScreen(userId: widget.currentUser.id, currentUserId: widget.currentUser.id, theme: t),
     ];
 
     return Scaffold(
-      extendBody: true, // للسماح للمحتوى بالظهور خلف الـ BottomNav الزجاجي
+      extendBody: true,
       body: Stack(
         children: [
-          // خلفية ديناميكية متدرجة
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -74,13 +70,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // كرات الـ Blur الجمالية (Orbs)
+          // تم تغيير t.accent إلى t.button.withOpacity(0.1) لأنه تم توحيد المتغيرات
           Positioned(top: -50, left: -50, child: _BlurOrb(color: t.button.withOpacity(0.2), size: 250)),
-          Positioned(bottom: 100, right: -50, child: _BlurOrb(color: t.accent.withOpacity(0.2), size: 200)),
+          Positioned(bottom: 100, right: -50, child: _BlurOrb(color: t.button.withOpacity(0.1), size: 200)),
           
           SafeArea(
             bottom: false,
-            child: IndexedStack(index: _tab, children: pages), // يحافظ على حالة الصفحات عند التنقل
+            child: IndexedStack(index: _tab, children: pages),
           ),
         ],
       ),
@@ -94,14 +90,15 @@ class _HomeScreenState extends State<HomeScreen> {
       height: 70,
       decoration: BoxDecoration(
         color: t.card.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(t.borderRadius),
+        // تم استبدال t.borderRadius بـ 30.0 لتوحيد الشكل
+        borderRadius: BorderRadius.circular(30.0),
         border: Border.all(color: Colors.white.withOpacity(0.2)),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(t.borderRadius),
+        borderRadius: BorderRadius.circular(30.0),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
           child: Row(
@@ -144,10 +141,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// -------------------------------------------------------------------------
-// الودجت الفرعية المساعدة (Helpers)
-// -------------------------------------------------------------------------
-
 class _BlurOrb extends StatelessWidget {
   final Color color;
   final double size;
@@ -187,7 +180,6 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-// تبويب المحادثات (Placeholder حالياً)
 class _MessagesTab extends StatelessWidget {
   final AppThemeData theme;
   final AppUser currentUser;
@@ -201,7 +193,6 @@ class _MessagesTab extends StatelessWidget {
   }
 }
 
-// تبويب الغرف (Placeholder حالياً)
 class _RoomsTab extends StatelessWidget {
   final AppThemeData theme;
   final AppUser currentUser;
@@ -214,3 +205,4 @@ class _RoomsTab extends StatelessWidget {
     );
   }
 }
+
