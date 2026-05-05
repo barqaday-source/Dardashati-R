@@ -1,4 +1,4 @@
-name: Build Dardashati App Final
+name: Build Dardashati App Professional
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,23 +31,13 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      # الخطوة الحاسمة لتجنب خطأ Groovy و QName
-      - name: Setup Gradle Wrapper
-        working-directory: android
-        run: |
-          # حذف أي آثار لنسخ قديمة قد تسبب تعارض
-          rm -f gradlew gradlew.bat
-          rm -rf gradle/wrapper
-          # إنشاء غلاف جديد تماماً متوافق مع Flutter 3.19
-          gradle wrapper --gradle-version 7.6.3 --distribution-type all
-          chmod +x gradlew
-
+      # الخطوة الحاسمة: بناء APK مباشرة (فلاتر سيتكفل بجلب النسخة المتوافقة تلقائياً)
       - name: Build Release APK
         run: |
-          # تنظيف المشروع قبل البناء لضمان عدم وجود ملفات تالفة
           flutter clean
           flutter pub get
-          flutter build apk --release --no-tree-shake-icons
+          # استخدام هذا الأمر يجبر فلاتر على استخدام محركه الخاص وتجاوز أخطاء Gradle الخارجية
+          flutter build apk --release --no-tree-shake-icons --target-platform android-arm64
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
