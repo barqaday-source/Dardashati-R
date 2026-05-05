@@ -1,6 +1,5 @@
-import 'package:dardashati/extensions.dart';
 import 'package:flutter/material.dart';
-import 'package:blur/blur.dart'; // مكتبة التأثير الزجاجي
+import 'package:blur/blur.dart'; 
 import 'package:dardashati/models.dart'; 
 import 'package:dardashati/services/database_service.dart';
 
@@ -46,11 +45,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _markAllRead() async {
     try {
       await DatabaseService.markAllNotificationsRead();
-      setState(() { 
-        for (var n in _notifications) {
-          n.isRead = true; 
-        }
-      });
+      // بدلاً من n.isRead = true (التي تسبب الخطأ)
+      // نقوم بإعادة تحميل البيانات أو تحديث القائمة كلياً
+      await _load();
     } catch (_) {}
   }
 
@@ -61,9 +58,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       backgroundColor: t.background,
-      // AppBar بنظام Glassmorphism
       appBar: AppBar(
-        flexibleSpace: Container().frozen(blur: 15, color: t.menu.withOpacity(0.7)),
+        // تصحيح: استخدام Blur بشكل صحيح حسب السجل
+        flexibleSpace: ClipRect(
+          child: Container(color: t.menu.withOpacity(0.7)).frozen(blur: 15),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
@@ -119,7 +118,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: n.isRead ? t.card.withOpacity(0.4) : t.card,
-        borderRadius: BorderRadius.circular(25), // انحناء كبير ومتناسق مع تصميمنا
+        borderRadius: BorderRadius.circular(25),
         border: Border.all(
           color: n.isRead ? Colors.transparent : t.button.withOpacity(0.3),
           width: 1.5,
@@ -129,15 +128,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         borderRadius: BorderRadius.circular(25),
         onTap: () async {
           if (!n.isRead) {
-            setState(() => n.isRead = true);
+            // حل مشكلة الـ final: نرسل الطلب للقاعدة ثم نحدث الواجهة
             await DatabaseService.markNotificationRead(n.id);
+            _load(); // إعادة تحميل الحالة الجديدة من السيرفر
           }
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // أيقونة الإشعار بتصميم دائري عصري
               Container(
                 width: 50, height: 50,
                 decoration: BoxDecoration(
