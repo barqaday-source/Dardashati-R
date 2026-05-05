@@ -1,15 +1,36 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dardashati/models.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/material.dart'; // ضرورية لـ debugPrint
 
 class DatabaseService {
-  // استخدام عميل سوبابيز بشكل مباشر وصحيح
   static final _client = Supabase.instance.client;
 
   static User? get currentUser => _client.auth.currentUser;
   static String? get uid => _client.auth.currentUser?.id;
 
-  // ==================== 1. نظام الدخول والتحقق ====================
+  // ==================== 1. وظائف الإدارة (مطابقة للوحة المدير) ====================
+
+  // جلب المستخدمين للبث المباشر في لوحة الإدارة
+  static Stream<List<Map<String, dynamic>>> getAdminUsersStream() {
+    return _client.from('users').stream(primaryKey: ['id']).order('username');
+  }
+
+  // التحكم في الحظر (Ban) - أساسي للمدير
+  static Future<void> toggleUserBan(String userId, bool isBanned) async {
+    try {
+      await _client.from('users').update({'is_banned': isBanned}).eq('id', userId);
+    } catch (e) {
+      debugPrint('Error: $e');
+    }
+  }
+
+  // تحديث رتبة المستخدم
+  static Future<void> updateUserRole(String userId, String role) async {
+    await _client.from('users').update({'role': role}).eq('id', userId);
+  }
+
+  // ==================== 2. نظام الدخول والتحقق ====================
 
   static Future<AuthResponse?> signInWithGoogle() async {
     const webClientId = '62134907551-ofam7s8j4m4id3qtdqac6vrk7ui2d2o3.apps.googleusercontent.com';
@@ -24,9 +45,13 @@ class DatabaseService {
     );
   }
 
-  // ==================== 2. الرسائل الخاصة (حل أخطاء السطور 31-54) ====================
+  static Future<void> signOut() async {
+    await GoogleSignIn().signOut();
+    await _client.auth.signOut();
+  }
 
-  // تم حل خطأ السطر 49 و 54: جلب الرسائل كـ Future للتحميل الأولي
+  // ==================== 3. الرسائل الخاصة (حل أخطاء السطور 31-54) ====================
+
   static Future<List<AppMessage>> getPrivateMessages(String otherUserId) async {
     final res = await _client.from('messages')
         .select()
@@ -35,7 +60,6 @@ class DatabaseService {
     return (res as List).map((m) => AppMessage.fromMap(m)).toList();
   }
 
-  // تم حل خطأ السطر 32 و 49: الـ stream لا يقبل .or()، لذا نستخدم stream عام والفلترة تتم عبر RLS
   static Stream<List<Map<String, dynamic>>> getMessagesStream(String otherUserId) {
     return _client.from('messages')
         .stream(primaryKey: ['id'])
@@ -52,29 +76,18 @@ class DatabaseService {
     });
   }
 
-  static Future<void> markPrivateMessagesRead(String otherUserId) async {
-    if (uid == null) return;
-    await _client.from('messages').update({'is_read': true})
-        .eq('receiver_id', uid!).eq('user_id', otherUserId);
-  }
+  // ==================== 4. نظام الغرف والبحث (حل أخطاء السطور 42-321) ====================
 
-  // ==================== 3. نظام الغرف (حل أخطاء السطور 41-44) ====================
-
-  static Future<void> joinRoom(String roomId) async {
-    await _client.from('room_members').insert({'room_id': roomId, 'user_id': uid!});
-  }
-
-  // تعديل لتطابق التوقعات في السجل سطر 42
   static Future<List<AppMessage>> getRoomMessages(String roomId) async {
     final res = await _client.from('messages').select().eq('room_id', roomId).order('created_at');
     return (res as List).map((m) => AppMessage.fromMap(m)).toList();
   }
 
-  static Stream<List<Map<String, dynamic>>> subscribeToRoomMessages(String roomId) {
-    return _client.from('messages').stream(primaryKey: ['id']).eq('room_id', roomId);
+  static Future<List<AppUser>> getRoomMembers(String roomId) async {
+    final res = await _client.from('room_members').select('users(*)').eq('room_id', roomId);
+    return (res as List).map((u) => AppUser.fromMap(u['users'])).toList();
   }
 
-  // حل خطأ السطر 100-102: استخدام Named Parameters
   static Future<void> sendRoomMessage({required String roomId, required String content, String? replyToId}) async {
     await _client.from('messages').insert({
       'room_id': roomId, 
@@ -84,24 +97,30 @@ class DatabaseService {
     });
   }
 
-  // ==================== 4. الإشعارات والتقارير (حل خطأ السطر 41 و 61) ====================
+  // حل أخطاء البحث (سطر 53 و 54)
+  static Future<List<AppUser>> searchUsers(String query) async {
+    final res = await _client.from('users').select().ilike('username', '%$query%');
+    return (res as List).map((u) => AppUser.fromMap(u)).toList();
+  }
 
-  // إضافة الدالة المفقودة التي طلبتها صفحة home_screen سطر 41
+  // ==================== 5. الإشعارات والملف الشخصي (حل أخطاء سطر 36 و 133) ====================
+
+  static Future<AppUser?> getUserById(String id) async {
+    try {
+      final data = await _client.from('users').select().eq('id', id).single();
+      return AppUser.fromMap(data);
+    } catch (e) { return null; }
+  }
+
+  static Future<void> markNotificationRead(String id) async {
+    await _client.from('notifications').update({'is_read': true}).eq('id', id);
+  }
+
   static Future<List<AppNotification>> getNotifications() async {
     if (uid == null) return [];
     final res = await _client.from('notifications').select().eq('user_id', uid!).order('created_at');
     return (res as List).map((n) => AppNotification.fromMap(n)).toList();
   }
-
-  static Future<void> markAllNotificationsRead() async {
-    await _client.from('notifications').update({'is_read': true}).eq('user_id', uid!);
-  }
-
-  static Future<void> saveUserTheme(String themeName) async {
-    await _client.from('users').update({'theme_preference': themeName}).eq('id', uid!);
-  }
-
-  static Future<void> submitReport({required String targetId, required String reason}) async {
-    await _client.from('reports').insert({'reporter_id': uid!, 'reported_id': targetId, 'reason': reason});
+}
   }
 }
