@@ -29,7 +29,6 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
   @override
   void initState() {
     super.initState();
-    // تسجيل دخول المستخدم للغرفة
     DatabaseService.joinRoom(widget.room.id);
   }
 
@@ -67,7 +66,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
       );
       _scrollToBottom();
     } catch (e) {
-      // معالجة الخطأ بصمت
+      debugPrint("Send error: $e");
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -92,7 +91,6 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
                   .map((m) => AppMessage.fromMap(m))
                   .toList();
 
-              // التمرير للأسفل عند وصول رسائل جديدة
               WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
               return ListView.builder(
@@ -127,7 +125,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
             color: t.button.withOpacity(0.1),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Center(child: Text(widget.room.icon, style: const TextStyle(fontSize: 22))),
+          child: Center(child: Icon(widget.room.icon, color: t.button, size: 22)), // تم تغيير النص إلى أيقونة
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -163,7 +161,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
                 if (!isMe) 
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4, right: 4),
-                    child: Text(msg.senderName, style: TextStyle(color: t.button, fontSize: 11, fontWeight: FontWeight.bold)),
+                    child: Text(msg.senderName ?? "مجهول", style: TextStyle(color: t.button, fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
                 GestureDetector(
                   onLongPress: () => setState(() => _replyTo = msg),
@@ -183,7 +181,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
                       crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                       children: [
                         if (msg.replyToContent != null) _buildReplyInBubble(msg, isMe, t),
-                        Text(msg.content, style: TextStyle(color: isMe ? t.buttonText : t.text, fontSize: 14.5, height: 1.4)),
+                        Text(msg.content ?? "", style: TextStyle(color: isMe ? t.buttonText : t.text, fontSize: 14.5, height: 1.4)),
                       ],
                     ),
                   ),
@@ -201,13 +199,15 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
   }
 
   Widget _buildAvatar(AppMessage msg, AppThemeData t) {
+    final String avatar = msg.senderAvatar ?? "";
+    final String name = msg.senderName ?? "?";
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(userId: msg.senderId, currentUserId: widget.currentUser.id, theme: t))),
       child: CircleAvatar(
         radius: 18,
         backgroundColor: t.button.withOpacity(0.1),
-        backgroundImage: msg.senderAvatar.isNotEmpty ? NetworkImage(msg.senderAvatar) : null,
-        child: msg.senderAvatar.isEmpty ? Text(msg.senderName.isNotEmpty ? msg.senderName[0] : "?", style: TextStyle(color: t.button, fontSize: 12)) : null,
+        backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+        child: avatar.isEmpty ? Text(name.isNotEmpty ? name[0] : "?", style: TextStyle(color: t.button, fontSize: 12)) : null,
       ),
     );
   }
@@ -223,7 +223,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(msg.replyToSender ?? "مستخدم", style: TextStyle(color: isMe ? Colors.white : t.button, fontSize: 10, fontWeight: FontWeight.bold)),
-        Text(msg.replyToContent!, style: TextStyle(color: (isMe ? Colors.white : t.text).withOpacity(0.6), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(msg.replyToContent ?? "", style: TextStyle(color: (isMe ? Colors.white : t.text).withOpacity(0.6), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
       ]),
     );
   }
@@ -236,8 +236,8 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
         Container(width: 4, height: 35, decoration: BoxDecoration(color: t.button, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('رداً على ${_replyTo!.senderName}', style: TextStyle(color: t.button, fontSize: 11, fontWeight: FontWeight.bold)),
-          Text(_replyTo!.content, style: TextStyle(color: t.text.withOpacity(0.5), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text('رداً على ${_replyTo?.senderName ?? ""}', style: TextStyle(color: t.button, fontSize: 11, fontWeight: FontWeight.bold)),
+          Text(_replyTo?.content ?? "", style: TextStyle(color: t.text.withOpacity(0.5), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
         ])),
         IconButton(icon: Icon(Icons.close_rounded, color: t.text.withOpacity(0.3), size: 20), onPressed: () => setState(() => _replyTo = null)),
       ]),
@@ -290,7 +290,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
   }
 
   void _showMembers(BuildContext context, AppThemeData t) async {
-    final members = await DatabaseService.getRoomMembers(widget.room.id).catchError((_) => <AppUser>[]);
+    final List<AppUser> members = await DatabaseService.getRoomMembers(widget.room.id).catchError((_) => <AppUser>[]);
     if (!mounted) return;
     showModalBottomSheet(
       context: context, backgroundColor: t.menu,
