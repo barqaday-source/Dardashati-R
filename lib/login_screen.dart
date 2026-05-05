@@ -39,17 +39,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _name.dispose(); _email.dispose(); _password.dispose();
+    _name.dispose(); 
+    _email.dispose(); 
+    _password.dispose();
     super.dispose();
   }
 
-  // --- دالة تسجيل الدخول عبر جوجل ---
   Future<void> _handleGoogleSignIn() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final res = await DatabaseService.signInWithGoogle();
-      if (res != null && mounted) {
-        Navigator.of(context).popUntil((r) => r.isFirst);
+      await DatabaseService.signInWithGoogle();
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
       }
     } catch (e) {
       setState(() => _error = "فشل تسجيل الدخول عبر جوجل، حاول مجدداً");
@@ -58,7 +59,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // --- دالة إعادة تعيين كلمة المرور ---
   Future<void> _resetPassword() async {
     final email = _email.text.trim();
     if (email.isEmpty) {
@@ -67,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     setState(() => _loading = true);
     try {
-      await supabase.auth.resetPasswordForEmail(email, redirectTo: 'dardashati://callback');
+      await supabase.auth.resetPasswordForEmail(email);
       if (mounted) _showSuccess('تم إرسال رابط إعادة التعيين لبريدك');
     } catch (e) {
       setState(() => _error = 'فشل الإرسال، تأكد من صحة البريد');
@@ -76,29 +76,36 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // --- دالة الإرسال الأساسية (Email/Password) ---
   Future<void> _submit() async {
     if (_loading) return;
+    final email = _email.text.trim();
+    final password = _password.text.trim();
+    final name = _name.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _error = 'يرجى ملء جميع الحقول');
+      return;
+    }
+
     setState(() { _loading = true; _error = null; });
     try {
       if (_isLogin) {
-        await supabase.auth.signInWithPassword(
-          email: _email.text.trim(), 
-          password: _password.text.trim()
-        );
-        if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+        await supabase.auth.signInWithPassword(email: email, password: password);
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
       } else {
-        if (_name.text.trim().isEmpty) {
+        if (name.isEmpty) {
           setState(() { _error = 'الاسم مطلوب'; _loading = false; });
           return;
         }
         await supabase.auth.signUp(
-          email: _email.text.trim(), 
-          password: _password.text.trim(),
-          data: {'full_name': _name.text.trim()},
+          email: email, 
+          password: password,
+          data: {'full_name': name},
         );
         if (mounted) {
-          _showSuccess('تم إنشاء الحساب! يرجى التحقق من بريدك');
+          _showSuccess('تم إنشاء الحساب بنجاح!');
           setState(() => _isLogin = true);
         }
       }
@@ -118,32 +125,38 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: t.background,
       body: Stack(
         children: [
+          // الخلفية المتدرجة
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: t.gradientColors,
+                colors: [t.background, t.card.withOpacity(0.8)],
               ),
             ),
           ),
-          Positioned(top: -50, left: -50, child: _BlurOrb(color: t.button.withOpacity(0.2), size: 200)),
+          // الدوائر الضبابية (تصميمك الأصلي)
+          Positioned(top: -50, left: -50, child: _BlurOrb(color: t.button.withOpacity(0.15), size: 250)),
+          Positioned(bottom: -100, right: -50, child: _BlurOrb(color: t.button.withOpacity(0.1), size: 300)),
           
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildBackButton(t),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 30),
                     Text(_isLogin ? 'مرحباً بك مجدداً' : 'ابدأ رحلتك معنا',
-                      style: TextStyle(color: t.text, fontSize: 30, fontWeight: FontWeight.w900, fontFamily: 'Tajawal')),
+                      textAlign: TextAlign.right,
+                      style: TextStyle(color: t.text, fontSize: 32, fontWeight: FontWeight.w900, fontFamily: 'Tajawal')),
                     const SizedBox(height: 8),
                     Text(_isLogin ? 'سجل دخولك لمتابعة محادثاتك' : 'أنشئ حسابك واستمتع بتجربة دردشة فريدة',
-                      style: TextStyle(color: t.text.withOpacity(0.6), fontSize: 14)),
-                    const SizedBox(height: 30),
+                      textAlign: TextAlign.right,
+                      style: TextStyle(color: t.text.withOpacity(0.6), fontSize: 15)),
+                    const SizedBox(height: 40),
 
                     if (_error != null) _buildErrorBox(t),
 
@@ -164,16 +177,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 30),
                     _buildSubmitButton(t),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     _buildDivider(t),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     
                     _buildGoogleButton(t),
 
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 30),
                     _buildToggleAuth(t),
                   ],
                 ),
@@ -185,37 +198,35 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // --- زر تسجيل الدخول العادي ---
   Widget _buildSubmitButton(AppThemeData t) {
     return InkWell(
       onTap: _submit,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       child: Container(
         height: 60,
         width: double.infinity,
         decoration: BoxDecoration(
           color: t.button,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           boxShadow: [BoxShadow(color: t.button.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
         ),
         child: Center(
           child: _loading 
             ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: t.buttonText, strokeWidth: 2))
             : Text(_isLogin ? 'تسجيل الدخول' : 'إنشاء الحساب', 
-                style: TextStyle(color: t.buttonText, fontSize: 16, fontWeight: FontWeight.bold)),
+                style: TextStyle(color: t.buttonText, fontSize: 17, fontWeight: FontWeight.bold)),
         ),
       ),
     );
   }
 
-  // --- زر جوجل المدمج والمنسق ---
   Widget _buildGoogleButton(AppThemeData t) {
     return OutlinedButton.icon(
       style: OutlinedButton.styleFrom(
         fixedSize: const Size(double.maxFinite, 60),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        side: BorderSide(color: t.button.withOpacity(0.3), width: 1.5),
-        backgroundColor: t.card.withOpacity(0.2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        side: BorderSide(color: t.text.withOpacity(0.1), width: 1.5),
+        backgroundColor: t.card.withOpacity(0.3),
       ),
       icon: Image.network('https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.png', height: 22),
       label: Text('الدخول عبر جوجل', 
@@ -224,14 +235,13 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // --- فاصل "أو" ---
   Widget _buildDivider(AppThemeData t) {
     return Row(
       children: [
         Expanded(child: Divider(color: t.text.withOpacity(0.1))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: Text('أو', style: TextStyle(color: t.text.withOpacity(0.3), fontSize: 12)),
+          child: Text('أو', style: TextStyle(color: t.text.withOpacity(0.3), fontSize: 13)),
         ),
         Expanded(child: Divider(color: t.text.withOpacity(0.1))),
       ],
@@ -241,9 +251,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildField(AppThemeData t, {required String label, required IconData icon, required TextEditingController controller, bool isPassword = false, TextInputType? keyboardType}) {
     return Container(
       decoration: BoxDecoration(
-        color: t.card.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        color: t.card.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: TextField(
         controller: controller,
@@ -253,36 +263,36 @@ class _LoginScreenState extends State<LoginScreen> {
         style: TextStyle(color: t.text, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           hintText: label,
-          hintStyle: TextStyle(color: t.text.withOpacity(0.3), fontSize: 14),
+          hintStyle: TextStyle(color: t.text.withOpacity(0.2), fontSize: 14),
           prefixIcon: Icon(icon, color: t.button, size: 22),
           suffixIcon: isPassword ? IconButton(
             icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: t.text.withOpacity(0.2)),
             onPressed: () => setState(() => _obscure = !_obscure),
           ) : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
         ),
       ),
     );
   }
 
-  Widget _buildBackButton(AppThemeData t) => IconButton(
-    onPressed: () => Navigator.pop(context),
-    icon: Container(
-      padding: const EdgeInsets.all(8),
+  Widget _buildBackButton(AppThemeData t) => GestureDetector(
+    onTap: () => Navigator.pop(context),
+    child: Container(
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(color: t.card.withOpacity(0.5), shape: BoxShape.circle),
-      child: Icon(Icons.arrow_back_ios_new_rounded, color: t.button, size: 18),
+      child: Icon(Icons.arrow_back_ios_new_rounded, color: t.button, size: 20),
     ),
   );
 
   Widget _buildErrorBox(AppThemeData t) => Container(
-    padding: const EdgeInsets.all(12),
-    margin: const EdgeInsets.only(bottom: 20),
-    decoration: BoxDecoration(color: Colors.red.withOpacity(0.08), borderRadius: BorderRadius.circular(15)),
+    padding: const EdgeInsets.all(15),
+    margin: const EdgeInsets.only(bottom: 25),
+    decoration: BoxDecoration(color: Colors.red.withOpacity(0.08), borderRadius: BorderRadius.circular(18)),
     child: Row(children: [
-      const Icon(Icons.error_outline, color: Colors.red, size: 20),
-      const SizedBox(width: 10),
-      Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w500))),
+      const Icon(Icons.error_outline, color: Colors.red, size: 22),
+      const SizedBox(width: 12),
+      Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600))),
     ]),
   );
 
@@ -291,7 +301,7 @@ class _LoginScreenState extends State<LoginScreen> {
       onPressed: () => setState(() => _isLogin = !_isLogin),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(fontFamily: 'Tajawal', color: t.text, fontSize: 14),
+          style: TextStyle(fontFamily: 'Tajawal', color: t.text, fontSize: 15),
           children: [
             TextSpan(text: _isLogin ? 'ليس لديك حساب؟ ' : 'لديك حساب بالفعل؟ '),
             TextSpan(text: _isLogin ? 'سجل الآن' : 'ادخل من هنا', style: TextStyle(color: t.button, fontWeight: FontWeight.bold)),
@@ -308,7 +318,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String _mapAuthError(String error) {
     if (error.contains('Invalid login')) return 'البريد أو كلمة المرور غير صحيحة';
     if (error.contains('already registered')) return 'هذا البريد مستخدم بالفعل';
-    return error;
+    if (error.contains('Email not confirmed')) return 'يرجى تأكيد حسابك من البريد الإلكتروني';
+    return "خطأ في تسجيل الدخول، تأكد من بياناتك";
   }
 }
 
@@ -321,6 +332,8 @@ class _BlurOrb extends StatelessWidget {
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+      // إضافة Blur حقيقي ليعطي تأثير "الأورب"
+      child: Opacity(opacity: 0.5),
     );
   }
 }
