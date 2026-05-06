@@ -1,4 +1,4 @@
-name: dardashati_r
+name: "Dardashati Professional Audit & Build"
 
 on:
   push:
@@ -23,23 +23,58 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      - name: Project Standardization
+      # --- مرحلة الفحص والتدقيق (قائمة الجرد) ---
+      - name: "🔍 Project Files Audit (فحص اكتمال الملفات)"
         run: |
-          # توحيد الهوية التقنية للمشروع
+          echo "===================================================="
+          echo "🚀 بدء فحص مكونات مشروع دردشاتي..."
+          echo "===================================================="
+          
+          check_file() {
+            if [ -f "$1" ]; then
+              echo "✅ الملف [ $1 ] موجود - (مكتمل)"
+            else
+              echo "❌ الملف [ $1 ] مفقود - (نقص يحتاج إصلاح)"
+            fi
+          }
+
+          echo "📂 فحص الشاشات الأساسية (UI):"
+          check_file "lib/main.dart"
+          check_file "lib/login_screen.dart"
+          check_file "lib/home_screen.dart"
+          check_file "lib/notifications_screen.dart"
+
+          echo -e "\n📂 فحص الخدمات والمنطق (Logic):"
+          check_file "lib/services/database_service.dart"
+          
+          echo -e "\n📂 فحص الإعدادات (Config):"
+          check_file "pubspec.yaml"
+          echo "===================================================="
+
+      - name: System Initialization
+        run: |
+          # توحيد الاسم تقنياً لضمان قبول أندرويد للبناء
           sed -i 's/name: .*/name: dardashati_r/' pubspec.yaml
+          # إصلاح الاستدعاءات لتطابق الهوية الجديدة تلقائياً
           find . -name "*.dart" -exec sed -i 's/package:dardashati\//package:dardashati_r\//g' {} +
           find . -name "*.dart" -exec sed -i 's/package:Dardashati-R\//package:dardashati_r\//g' {} +
           flutter pub get
+          dart fix --apply
+
+      - name: Logic & Analytics Check
+        run: |
+          # الفحص مع السماح بالتجاوز: لن ينهار البناء بسبب التحذيرات الصفراء
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Clean & Reconstruct Android
         run: |
-          # بناء هيكل أندرويد بمعايير 2026 المتوافقة مع Flutter 3.19
+          # إعادة بناء الهيكل لضمان نظافة ملفات Gradle 2026
           rm -rf android
           flutter create . --platforms android --project-name dardashati_r
 
       - name: Build Production APK
         run: |
-          # البناء النهائي بأعلى جودة مع تجاهل التحذيرات غير المؤثرة
+          # البناء النهائي مع توجيه صريح للملف الرئيسي
           flutter build apk --release --target lib/main.dart --no-tree-shake-icons
 
       - name: Export Final Application
