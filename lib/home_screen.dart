@@ -1,5 +1,4 @@
 // 1. Dart & Flutter Imports
-import 'package:dardashati/notifications_screen.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
@@ -7,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:dardashati/models.dart'; 
 import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
-import 'package:dardashati/notifications_screen.dart';
 import 'package:dardashati/profile_screen.dart';
+import 'package:dardashati/notifications_screen.dart'; // تم التأكد من وجود هذا السطر لحل المشكلة
 
 class HomeScreen extends StatefulWidget {
   final AppUser currentUser;
@@ -42,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final notifications = await DatabaseService.getNotifications();
       if (mounted) {
         setState(() {
-          // استخدام .isRead من الموديل الجديد
+          // جرد التنبيهات غير المقروءة بناءً على الموديل
           _unreadNotifications = notifications.where((n) => !n.isRead).length;
         });
       }
@@ -124,8 +123,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNotificationBtn(AppThemeData t) {
     return IconButton(
       onPressed: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen(theme: t)))
-            .then((_) => _refreshUnreadCount());
+        // تم حل الخطأ هنا بإضافة الـ import في الأعلى
+        Navigator.push(
+          context, 
+          MaterialPageRoute(builder: (_) => NotificationsScreen(theme: t))
+        ).then((_) => _refreshUnreadCount());
       },
       icon: Stack(
         clipBehavior: Clip.none,
@@ -147,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// الـ Widgets المساعدة بقيت كما هي مع تحسين استقرار الألوان
+// الـ Widgets المساعدة
 class _BlurOrb extends StatelessWidget {
   final Color color;
   final double size;
