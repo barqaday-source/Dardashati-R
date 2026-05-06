@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 // ==================== 1. Models ====================
-// ملاحظة: هذه النماذج تم دمجها هنا لضمان عدم وجود أخطاء في المسارات أثناء البناء التلقائي
 
 class AppMessage {
   final String id;
@@ -101,12 +100,8 @@ class AppRoom {
 
 // ==================== 2. Main Entry Point ====================
 
-void main() async {
-  // التأكد من تهيئة جميع المكونات قبل تشغيل التطبيق
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // ملاحظة للمستقبل: إذا أضفت Supabase.initialize، ضعها هنا.
-  
   runApp(const DardashatiApp());
 }
 
@@ -120,18 +115,11 @@ class DardashatiApp extends StatelessWidget {
     return MaterialApp(
       title: 'دردشاتي',
       debugShowCheckedModeBanner: false,
-      // ثيم احترافي يدعم Material 3
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF2196F3), // لون أزرق أساسي هادئ
+        colorSchemeSeed: const Color(0xFF2196F3),
         brightness: Brightness.light,
       ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF2196F3),
-        brightness: Brightness.dark,
-      ),
-      // شاشة البداية المؤقتة لحين ربط LoginScreen
       home: const MainSplashScreen(),
     );
   }
@@ -142,12 +130,13 @@ class MainSplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Container(
+    // تم حذف const من هنا لحل مشكلة الـ Container
+    return Scaffold(
+      body: SizedBox(
         width: double.infinity,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children: const [
             Icon(Icons.chat_bubble_outline, size: 80, color: Colors.blue),
             SizedBox(height: 20),
             Text(
@@ -157,7 +146,7 @@ class MainSplashScreen extends StatelessWidget {
             SizedBox(height: 10),
             CircularProgressIndicator(),
             SizedBox(height: 20),
-            Text('جاري تهيئة النظام بأعلى معايير الاستقرار...'),
+            Text('جاري تهيئة النظام...'),
           ],
         ),
       ),
