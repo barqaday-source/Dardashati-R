@@ -2,24 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // تأكد من إضافة هذه المكتبة في pubspec.yaml
 
 import 'package:dardashati/models.dart';
 import 'package:dardashati/app_theme.dart'; 
-// تم حذف سطر database_service من هنا لأنه غير مستخدم ويسبب فشل البناء
 import 'package:dardashati/home_screen.dart';
 import 'package:dardashati/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // محاولة تحميل المتغيرات السرية من GitHub Actions
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint("Info: .env file not found locally.");
+  }
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 
-  // ملاحظة: تأكد من وضع قيم Supabase الحقيقية لكي يعمل التطبيق فعلياً
+  // الربط الآمن باستخدام المتغيرات التي وضعتها في GitHub
+  // إذا لم يجدها (أثناء التشغيل المحلي مثلاً) سيستخدم القيم التي أرسلتها أنت كاحتياط
   await Supabase.initialize(
-    url: 'YOUR_SUPABASE_URL', 
-    anonKey: 'YOUR_SUPABASE_ANON_KEY',
+    url: dotenv.env['SUPABASE_URL'] ?? 'https://jmsmrojtlstppnpwmkkk.supabase.co', 
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptc21yb2p0bHN0cHBucHdta2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MTg2NDAsImV4cCI6MjA4ODM5NDY0MH0.j7gxr5CvrfvbJJzK_pMwVHiCE2AqpXUTThpeLEBmsos',
   );
 
   runApp(const DardashatiApp());
@@ -33,6 +41,7 @@ class DardashatiApp extends StatefulWidget {
 }
 
 class _DardashatiAppState extends State<DardashatiApp> {
+  // استخدام الثيم الأول كافتراضي لضمان عدم وجود أخطاء في التعريف
   AppThemeData _currentTheme = AppThemes.allThemes[0];
   bool _initialized = false;
   final _navigatorKey = GlobalKey<NavigatorState>();
@@ -47,7 +56,7 @@ class _DardashatiAppState extends State<DardashatiApp> {
   Future<void> _loadInitialSettings() async {
     try {
       if (Supabase.instance.client.auth.currentUser != null) {
-        // منطق جلب الثيم المفضل للمستخدم مستقبلاً
+        // منطق جلب الثيم مستقبلاً
       }
     } catch (e) {
       debugPrint("Theme Error: $e");
@@ -144,7 +153,11 @@ class UpdatePasswordScreen extends StatelessWidget {
     final passController = TextEditingController();
     return Scaffold(
       backgroundColor: theme.background,
-      appBar: AppBar(title: const Text('كلمة مرور جديدة', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: Colors.transparent),
+      appBar: AppBar(
+        title: const Text('كلمة مرور جديدة', style: TextStyle(fontFamily: 'Tajawal')), 
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(25),
         child: Column(
