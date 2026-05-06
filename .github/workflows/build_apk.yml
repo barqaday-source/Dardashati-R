@@ -1,155 +1,49 @@
-import 'package:flutter/material.dart';
+name: dardashati_r
 
-// ==================== 1. Models ====================
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
-class AppMessage {
-  final String id;
-  final String senderId;
-  final String content;
-  final DateTime time; 
-  final String? senderName;
-  final String? senderAvatar;
-  final String? replyToId;
-  final String? replyToSender; 
-  final String? replyToContent;
-  final bool isRead; 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-  AppMessage({
-    required this.id,
-    required this.senderId,
-    required this.content,
-    required this.time,
-    this.senderName,
-    this.senderAvatar,
-    this.replyToId,
-    this.replyToSender,
-    this.replyToContent,
-    this.isRead = false,
-  });
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-  factory AppMessage.fromMap(Map<String, dynamic> map) {
-    return AppMessage(
-      id: map['id']?.toString() ?? '',
-      senderId: (map['sender_id'] ?? map['user_id'])?.toString() ?? '',
-      content: map['content']?.toString() ?? '',
-      time: DateTime.parse(map['created_at'] ?? DateTime.now().toIso8601String()),
-      senderName: map['user_name']?.toString() ?? 'مستخدم',
-      senderAvatar: map['avatar_url']?.toString(),
-      replyToId: map['reply_to_id']?.toString(),
-      replyToSender: map['reply_to_sender_name']?.toString(),
-      replyToContent: map['reply_to_content']?.toString(),
-      isRead: map['is_read'] ?? false,
-    );
-  }
-}
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
 
-class AppUser {
-  final String id;
-  final String fullName;
-  final String email; 
-  final String avatarUrl;
-  final bool isOnline;
-  final String? bio;
-  final String role; 
-  final bool isBanned;
+      - name: Project Standardization
+        run: |
+          # توحيد الهوية التقنية للمشروع
+          sed -i 's/name: .*/name: dardashati_r/' pubspec.yaml
+          find . -name "*.dart" -exec sed -i 's/package:dardashati\//package:dardashati_r\//g' {} +
+          find . -name "*.dart" -exec sed -i 's/package:Dardashati-R\//package:dardashati_r\//g' {} +
+          flutter pub get
 
-  AppUser({
-    required this.id,
-    required this.fullName,
-    required this.email,
-    required this.avatarUrl,
-    this.isOnline = false,
-    this.bio,
-    this.role = 'user',
-    this.isBanned = false,
-  });
+      - name: Clean & Reconstruct Android
+        run: |
+          # بناء هيكل أندرويد بمعايير 2026 المتوافقة مع Flutter 3.19
+          rm -rf android
+          flutter create . --platforms android --project-name dardashati_r
 
-  factory AppUser.fromMap(Map<String, dynamic> map) {
-    return AppUser(
-      id: map['id']?.toString() ?? '',
-      fullName: map['full_name']?.toString() ?? 'مستخدم جديد',
-      email: map['email']?.toString() ?? '', 
-      avatarUrl: map['avatar_url']?.toString() ?? '',
-      isOnline: map['is_online'] ?? false,
-      bio: map['bio']?.toString() ?? '',
-      role: map['role']?.toString() ?? 'user',
-      isBanned: map['is_banned'] ?? false,
-    );
-  }
-}
+      - name: Build Production APK
+        run: |
+          # البناء النهائي بأعلى جودة مع تجاهل التحذيرات غير المؤثرة
+          flutter build apk --release --target lib/main.dart --no-tree-shake-icons
 
-class AppRoom {
-  final String id;
-  final String name;
-  final String? description;
-  final int memberCount;
-
-  AppRoom({required this.id, required this.name, this.description, this.memberCount = 0});
-
-  String get membersLabel => "$memberCount عضو";
-
-  factory AppRoom.fromMap(Map<String, dynamic> map) {
-    return AppRoom(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? 'غرفة',
-      description: map['description']?.toString(),
-      memberCount: map['member_count'] ?? 0,
-    );
-  }
-}
-
-// ==================== 2. Main Entry Point ====================
-
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(const DardashatiApp());
-}
-
-// ==================== 3. App Core ====================
-
-class DardashatiApp extends StatelessWidget {
-  const DardashatiApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'دردشاتي',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF2196F3),
-        brightness: Brightness.light,
-      ),
-      home: const MainSplashScreen(),
-    );
-  }
-}
-
-class MainSplashScreen extends StatelessWidget {
-  const MainSplashScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // تم حذف const من هنا لحل مشكلة الـ Container
-    return Scaffold(
-      body: SizedBox(
-        width: double.infinity,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.chat_bubble_outline, size: 80, color: Colors.blue),
-            SizedBox(height: 20),
-            Text(
-              'دردشاتي',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text('جاري تهيئة النظام...'),
-          ],
-        ),
-      ),
-    );
-  }
-}
+      - name: Export Final Application
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dardashati-Final-Installable
+          path: build/app/outputs/flutter-apk/app-release.apk
