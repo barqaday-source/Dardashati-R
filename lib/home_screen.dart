@@ -1,9 +1,18 @@
+// 1. Dart Imports
 import 'dart:ui';
+
+// 2. Flutter Imports
 import 'package:flutter/material.dart';
+
+// 3. External Packages Imports
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+// 4. Project Internal Imports (Models, Themes, Services)
 import 'package:dardashati/models.dart'; 
 import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
-// تم حذف private_chat_screen و settings_screen لأنها تسبب Warning (غير مستخدمة هنا)
+
+// 5. Project Internal Imports (Screens)
 import 'package:dardashati/notifications_screen.dart';
 import 'package:dardashati/profile_screen.dart';
 
@@ -41,24 +50,32 @@ class _HomeScreenState extends State<HomeScreen> {
           _unreadNotifications = notifications.where((n) => !n.isRead).length;
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      // تجاهل الخطأ في حالة فشل الاتصال بالشبكة
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final t = widget.theme;
     
+    // قائمة الصفحات التابعة للـ TabBar
     final List<Widget> pages = [
       _RoomsTab(theme: t, currentUser: widget.currentUser),
       _MessagesTab(theme: t, currentUser: widget.currentUser),
-      const Center(child: Text("قريباً: شاشة البحث")), 
-      ProfileScreen(userId: widget.currentUser.id, currentUserId: widget.currentUser.id, theme: t),
+      const Center(child: Text("قريباً: شاشة البحث", style: TextStyle(fontFamily: 'Tajawal'))), 
+      ProfileScreen(
+        userId: widget.currentUser.id, 
+        currentUserId: widget.currentUser.id, 
+        theme: t
+      ),
     ];
 
     return Scaffold(
       extendBody: true,
       body: Stack(
         children: [
+          // الخلفية المتدرجة
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -69,6 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
+          // العناصر الجمالية (Blur Orbs)
           Positioned(top: -50, left: -50, child: _BlurOrb(color: t.button.withOpacity(0.2), size: 250)),
           Positioned(bottom: 100, right: -50, child: _BlurOrb(color: t.button.withOpacity(0.1), size: 200)),
           
@@ -82,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // بناء شريط التنقل السفلي بتأثير الزجاج (Glassmorphism)
   Widget _buildGlassBottomNav(AppThemeData t) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
@@ -138,6 +157,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// --- المصغرات المساعدة (Private Widgets) ---
+
 class _BlurOrb extends StatelessWidget {
   final Color color;
   final double size;
@@ -147,8 +168,6 @@ class _BlurOrb extends StatelessWidget {
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      // تم تبسيط الكود لضمان عدم وجود Warnings منطقية
-      child: Opacity(opacity: 0.5),
     );
   }
 }
@@ -186,7 +205,7 @@ class _MessagesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text("قائمة المحادثات الخاصة", style: TextStyle(color: theme.text.withOpacity(0.5))),
+      child: Text("قائمة المحادثات الخاصة", style: TextStyle(color: theme.text.withOpacity(0.5), fontFamily: 'Tajawal')),
     );
   }
 }
@@ -199,7 +218,7 @@ class _RoomsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text("غرف الدردشة العامة", style: TextStyle(color: theme.text.withOpacity(0.5))),
+      child: Text("غرف الدردشة العامة", style: TextStyle(color: theme.text.withOpacity(0.5), fontFamily: 'Tajawal')),
     );
   }
 }
