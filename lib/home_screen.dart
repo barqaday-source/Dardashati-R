@@ -1,18 +1,11 @@
-// 1. Dart Imports
+// 1. Dart & Flutter Imports
 import 'dart:ui';
-
-// 2. Flutter Imports
 import 'package:flutter/material.dart';
 
-// 3. External Packages Imports
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-// 4. Project Internal Imports (Models, Themes, Services)
+// 2. Project Internal Imports
 import 'package:dardashati/models.dart'; 
 import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
-
-// 5. Project Internal Imports (Screens)
 import 'package:dardashati/notifications_screen.dart';
 import 'package:dardashati/profile_screen.dart';
 
@@ -42,16 +35,18 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshUnreadCount();
   }
 
+  // تحديث عداد التنبيهات غير المقروءة
   Future<void> _refreshUnreadCount() async {
     try {
       final notifications = await DatabaseService.getNotifications();
       if (mounted) {
         setState(() {
+          // استخدام .isRead من الموديل الجديد
           _unreadNotifications = notifications.where((n) => !n.isRead).length;
         });
       }
-    } catch (_) {
-      // تجاهل الخطأ في حالة فشل الاتصال بالشبكة
+    } catch (e) {
+      debugPrint("Error fetching notifications: $e");
     }
   }
 
@@ -59,11 +54,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final t = widget.theme;
     
-    // قائمة الصفحات التابعة للـ TabBar
     final List<Widget> pages = [
       _RoomsTab(theme: t, currentUser: widget.currentUser),
       _MessagesTab(theme: t, currentUser: widget.currentUser),
-      const Center(child: Text("قريباً: شاشة البحث", style: TextStyle(fontFamily: 'Tajawal'))), 
+      const Center(child: Text("قريباً: شاشة البحث", style: TextStyle(fontFamily: 'Tajawal', color: Colors.white))), 
       ProfileScreen(
         userId: widget.currentUser.id, 
         currentUserId: widget.currentUser.id, 
@@ -75,7 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
       extendBody: true,
       body: Stack(
         children: [
-          // الخلفية المتدرجة
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -85,11 +78,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          
-          // العناصر الجمالية (Blur Orbs)
           Positioned(top: -50, left: -50, child: _BlurOrb(color: t.button.withOpacity(0.2), size: 250)),
           Positioned(bottom: 100, right: -50, child: _BlurOrb(color: t.button.withOpacity(0.1), size: 200)),
-          
           SafeArea(
             bottom: false,
             child: IndexedStack(index: _tab, children: pages),
@@ -100,7 +90,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // بناء شريط التنقل السفلي بتأثير الزجاج (Glassmorphism)
   Widget _buildGlassBottomNav(AppThemeData t) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
@@ -157,8 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// --- المصغرات المساعدة (Private Widgets) ---
-
+// الـ Widgets المساعدة بقيت كما هي مع تحسين استقرار الألوان
 class _BlurOrb extends StatelessWidget {
   final Color color;
   final double size;
@@ -205,7 +193,7 @@ class _MessagesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text("قائمة المحادثات الخاصة", style: TextStyle(color: theme.text.withOpacity(0.5), fontFamily: 'Tajawal')),
+      child: Text("قائمة المحادثات الخاصة", style: TextStyle(color: theme.text.withOpacity(0.7), fontFamily: 'Tajawal')),
     );
   }
 }
@@ -218,7 +206,7 @@ class _RoomsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text("غرف الدردشة العامة", style: TextStyle(color: theme.text.withOpacity(0.5), fontFamily: 'Tajawal')),
+      child: Text("غرف الدردشة العامة", style: TextStyle(color: theme.text.withOpacity(0.7), fontFamily: 'Tajawal')),
     );
   }
 }
