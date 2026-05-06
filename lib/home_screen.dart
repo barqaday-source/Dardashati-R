@@ -37,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final notifications = await DatabaseService.getNotifications();
       if (mounted) {
         setState(() {
+          // حساب عدد الإشعارات غير المقروءة
           _unreadNotifications = notifications.where((n) => !n.isRead).length;
         });
       }
@@ -70,30 +71,58 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildGlassBottomNav(AppThemeData t) {
     return Container(
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
       height: 70,
-      decoration: BoxDecoration(color: t.card.withOpacity(0.3), borderRadius: BorderRadius.circular(30)),
+      decoration: BoxDecoration(
+        color: t.card.withOpacity(0.3), 
+        borderRadius: BorderRadius.circular(30)
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _NavItem(icon: Icons.grid_view_rounded, index: 0, current: _tab, theme: t, onTap: (i) => setState(() => _tab = i)),
           _NavItem(icon: Icons.chat_bubble_outline_rounded, index: 1, current: _tab, theme: t, onTap: (i) => setState(() => _tab = i)),
-          _buildNotificationBtn(t),
+          _buildNotificationBtn(t), // استدعاء زر الجرس مع العداد
           _NavItem(icon: Icons.person_outline_rounded, index: 3, current: _tab, theme: t, onTap: (i) => setState(() => _tab = i)),
         ],
       ),
     );
   }
 
+  // دالة بناء زر الجرس مع العداد (التي تمنع تحذير Unused Field)
   Widget _buildNotificationBtn(AppThemeData t) {
     return IconButton(
-      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen(theme: t))).then((_) => _refreshUnreadCount()),
-      icon: Icon(Icons.notifications_none_rounded, color: t.text.withOpacity(0.5)),
+      onPressed: () => Navigator.push(
+        context, 
+        MaterialPageRoute(builder: (_) => NotificationsScreen(theme: t))
+      ).then((_) => _refreshUnreadCount()),
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(Icons.notifications_none_rounded, color: t.text.withOpacity(0.5), size: 28),
+          if (_unreadNotifications > 0) 
+            Positioned(
+              right: -2,
+              top: -2,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Text(
+                  '$_unreadNotifications',
+                  style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-// هذه هي الأجزاء التي كانت ناقصة وتسببت في الأخطاء:
+// --- الـ Widgets المساعدة (خارج كلاس الـ State لضمان التنظيم) ---
+
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final int index, current;
@@ -103,7 +132,10 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(icon: Icon(icon, color: index == current ? theme.button : theme.text.withOpacity(0.4)), onPressed: () => onTap(index));
+    return IconButton(
+      icon: Icon(icon, color: index == current ? theme.button : theme.text.withOpacity(0.4), size: 28), 
+      onPressed: () => onTap(index)
+    );
   }
 }
 
@@ -112,7 +144,7 @@ class _RoomsTab extends StatelessWidget {
   final AppUser currentUser;
   const _RoomsTab({required this.theme, required this.currentUser});
   @override
-  Widget build(BuildContext context) => const Center(child: Text("الغرف"));
+  Widget build(BuildContext context) => const Center(child: Text("تبويب الغرف", style: TextStyle(color: Colors.white)));
 }
 
 class _MessagesTab extends StatelessWidget {
@@ -120,5 +152,6 @@ class _MessagesTab extends StatelessWidget {
   final AppUser currentUser;
   const _MessagesTab({required this.theme, required this.currentUser});
   @override
-  Widget build(BuildContext context) => const Center(child: Text("المحادثات"));
+  Widget build(BuildContext context) => const Center(child: Text("تبويب المحادثات", style: TextStyle(color: Colors.white)));
 }
+
