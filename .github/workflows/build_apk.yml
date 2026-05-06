@@ -25,27 +25,26 @@ jobs:
 
       - name: System Initialization
         run: |
-          # تصحيح اسم المشروع ليتوافق مع معايير دارت
-          sed -i 's/name: name: dardashati_r/name: dardashati_r/g' pubspec.yaml
+          # تصحيح الخطأ المطبعي هنا لضمان استبدال الاسم القديم بالجديد بشكل صحيح
+          sed -i 's/name: .*/name: dardashati_r/' pubspec.yaml
           flutter pub get
-          # الخطوة السحرية: إصلاح التحذيرات الشائعة تلقائياً
+          # إصلاح التحذيرات البسيطة تلقائياً
           dart fix --apply
 
       - name: Logic & Analytics Check
         run: |
-          # تعديل الأمر ليقوم بالفحص دون اعتبار التحذيرات كأخطاء قاتلة
-          # --no-fatal-warnings: تسمح بمرور العملية حتى لو وجد تحذيرات بسيطة
+          # الفحص مع السماح بالتحذيرات الصفراء
           flutter analyze --no-fatal-warnings
 
       - name: Clean & Reconstruct
         run: |
-          # تنظيف وبناء المنصات لضمان عدم تداخل الملفات القديمة
           flutter clean
-          flutter create . --platforms android
+          # إعادة إنشاء ملفات أندرويد بالاسم الصحيح
+          flutter create . --platforms android --project-name dardashati_r
 
       - name: Build Production APK
         run: |
-          # بناء نسخة الإصدار النهائي
+          # بناء الـ APK النهائي
           flutter build apk --release --no-tree-shake-icons
 
       - name: Export Final Application
