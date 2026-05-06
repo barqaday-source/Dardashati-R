@@ -1,4 +1,4 @@
-name: Dardashati Professional Build System
+name: dardashati_r
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
       - name: System Initialization
         run: |
           # تصحيح اسم المشروع ليتوافق مع معايير دارت
-          sed -i 's/name: Dardashati-R/name: dardashati_r/g' pubspec.yaml
+          sed -i 's/name: name: dardashati_r/name: dardashati_r/g' pubspec.yaml
           flutter pub get
           # الخطوة السحرية: إصلاح التحذيرات الشائعة تلقائياً
           dart fix --apply
