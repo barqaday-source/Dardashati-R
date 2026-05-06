@@ -1,3 +1,4 @@
+import 'dart:typed_data'; // تم إضافة هذا للتعامل مع Uint8List
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dardashati/models.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -36,11 +37,8 @@ class DatabaseService {
 
   // ═══════════════════════════════════════════
   // 2. إدارة المستخدمين - Users
-  // حل أخطاء: profile_screen.dart:39 (getUserById)
-  //            profile_screen.dart:69 (updateAvatar)
   // ═══════════════════════════════════════════
 
-  /// جلب مستخدم بالـ ID — حل خطأ profile_screen:39
   static Future<AppUser?> getUserById(String userId) async {
     final res = await _client
         .from('users')
@@ -50,22 +48,25 @@ class DatabaseService {
     return res != null ? AppUser.fromMap(res) : null;
   }
 
-  /// تحديث صورة البروفايل — حل خطأ profile_screen:69
   static Future<void> updateAvatar(String avatarUrl) async {
     await _client
         .from('users')
         .update({'avatar_url': avatarUrl}).eq('id', uid!);
   }
 
-  /// رفع صورة البروفايل إلى Storage ثم تحديثها
-  static Future<String?> uploadAvatar(List<int> fileBytes,
+  /// رفع صورة البروفايل
+  /// تم تغيير النوع من List<int> إلى Uint8List لحل خطأ argument_type_not_assignable
+  static Future<String?> uploadAvatar(Uint8List fileBytes,
       {String extension = 'jpg'}) async {
     final path = 'avatars/$uid.$extension';
+    
+    // استخدام uploadBinary مباشرة مع Uint8List
     await _client.storage.from('avatars').uploadBinary(
           path,
           fileBytes,
           fileOptions: const FileOptions(upsert: true),
         );
+    
     final url = _client.storage.from('avatars').getPublicUrl(path);
     await updateAvatar(url);
     return url;
@@ -105,9 +106,6 @@ class DatabaseService {
 
   // ═══════════════════════════════════════════
   // 4. الرسائل الخاصة - Private Messages
-  // حل أخطاء: notifications_screen:41، private_chat_screen:198
-  // الشاشات تستدعي: sendMessage('نص', 'id')  ← positional
-  // لذلك الدالة تقبل positional args مباشرةً
   // ═══════════════════════════════════════════
 
   static Future<void> sendMessage(
@@ -156,7 +154,6 @@ class DatabaseService {
 
   // ═══════════════════════════════════════════
   // 5. نظام الغرف - Room Chat
-  // حل أخطاء: 26، 27، 29، room_chat_screen:84
   // ═══════════════════════════════════════════
 
   static Future<void> sendRoomMessage({
@@ -181,7 +178,8 @@ class DatabaseService {
         .map((data) => data.map((m) => AppMessage.fromMap(m)).toList());
   }
 
-  /// Subscribe لرسائل الغرفة (Realtime) — حل خطأ room_chat_screen:84
+  /// Subscribe لرسائل الغرفة (Realtime)
+  /// حل خطأ FilterType.eq و PostgresChangeFilter
   static RealtimeChannel subscribeToRoomMessages(
     String roomId,
     void Function(List<AppMessage> messages) onData,
@@ -193,11 +191,11 @@ class DatabaseService {
           schema: 'public',
           table: 'messages',
           filter: PostgresChangeFilter(
-            type: FilterType.eq,
+            type: PostgresChangeFilterType.eq, // تم التصحيح من FilterType.eq
             column: 'room_id',
             value: roomId,
           ),
-          callback: (_) async {
+          callback: (payload) async {
             final res = await _client
                 .from('messages')
                 .select()
@@ -243,7 +241,6 @@ class DatabaseService {
 
   // ═══════════════════════════════════════════
   // 6. الإشعارات - Notifications
-  // حل خطأ: home_screen:126
   // ═══════════════════════════════════════════
 
   static Future<List<AppNotification>> getNotifications() async {
@@ -310,4 +307,3 @@ class DatabaseService {
     return (res as List).map((r) => AppRoom.fromMap(r)).toList();
   }
 }
-
