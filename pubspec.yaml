@@ -15,18 +15,18 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # --- المحرك الأساسي (Supabase & Google) ---
+  # تم تحديث الإصدار ليتوافق مع ميزات الرفع الجديدة
   supabase_flutter: ^2.5.0
   google_sign_in: ^6.2.1 
 
   # --- التصميم الفاخر (UI/UX) ---
-  # نستخدم Blur للوصول لتصميم عصري يشبه أنظمة التشغيل الحديثة
   blur: ^3.1.0 
   google_fonts: ^6.2.1
   font_awesome_flutter: ^10.7.0 
   
   # --- إدارة الوسائط والبيانات ---
   cached_network_image: ^3.3.1
-  image_picker: ^1.1.2
+  image_picker: ^1.1.2 # تم الإبقاء على النسخة الأحدث وحذف المكرر
   shared_preferences: ^2.2.3
   
   # --- تجربة المستخدم التفاعلية ---
@@ -37,8 +37,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-dependencies:
-  image_picker: ^1.0.7
 
 flutter:
   uses-material-design: true
+  # إضافة الخطوط إذا كنت تستخدم خطوطاً مخصصة مثل Tajawal مستقبلاً
