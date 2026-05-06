@@ -1,6 +1,6 @@
-import 'package:dardashati/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:blur/blur.dart'; 
+import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/models.dart'; 
 import 'package:dardashati/services/database_service.dart';
 
@@ -22,6 +22,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _load();
   }
 
+  // جلب التنبيهات باستخدام الخدمة المحدثة
   Future<void> _load() async {
     if (!mounted) return;
     setState(() => _loading = true);
@@ -43,11 +44,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  // تعديل اسم الدالة لتطابق ما هو موجود في DatabaseService
   Future<void> _markAllRead() async {
     try {
+      // تم تغيير المسمى هنا ليطابق المحرك الجديد DatabaseService
       await DatabaseService.markAllNotificationsRead();
-      // بدلاً من n.isRead = true (التي تسبب الخطأ)
-      // نقوم بإعادة تحميل البيانات أو تحديث القائمة كلياً
       await _load();
     } catch (_) {}
   }
@@ -60,9 +61,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       backgroundColor: t.background,
       appBar: AppBar(
-        // تصحيح: استخدام Blur بشكل صحيح حسب السجل
         flexibleSpace: ClipRect(
-          child: Container(color: t.menu.withOpacity(0.7)).frozen(blur: 15),
+          child: Container(color: t.card.withOpacity(0.5)).frozen(blur: 15),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -86,15 +86,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ],
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: t.text),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: t.text, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           if (unreadCount > 0)
             TextButton(
               onPressed: _markAllRead,
-              child: Text('تحديد الكل كمقروء', 
-                style: TextStyle(color: t.button, fontSize: 13, fontWeight: FontWeight.bold)),
+              child: Text('تحديد الكل', 
+                style: TextStyle(color: t.button, fontSize: 13, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
             ),
         ],
       ),
@@ -119,19 +119,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: n.isRead ? t.card.withOpacity(0.4) : t.card,
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: n.isRead ? Colors.transparent : t.button.withOpacity(0.3),
-          width: 1.5,
+          color: n.isRead ? Colors.transparent : t.button.withOpacity(0.2),
+          width: 1,
         ),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(20),
         onTap: () async {
           if (!n.isRead) {
-            // حل مشكلة الـ final: نرسل الطلب للقاعدة ثم نحدث الواجهة
             await DatabaseService.markNotificationRead(n.id);
-            _load(); // إعادة تحميل الحالة الجديدة من السيرفر
+            _load(); 
           }
         },
         child: Padding(
@@ -139,16 +138,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           child: Row(
             children: [
               Container(
-                width: 50, height: 50,
+                width: 45, height: 45,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [t.button.withOpacity(0.2), t.button.withOpacity(0.05)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: t.button.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(n.icon, color: t.button, size: 24),
+                child: Icon(n.icon, color: t.button, size: 22),
               ),
               const SizedBox(width: 15),
               Expanded(
@@ -158,23 +153,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     Text(n.title, 
                       style: TextStyle(
                         color: t.text, 
-                        fontWeight: n.isRead ? FontWeight.w500 : FontWeight.bold, 
-                        fontSize: 15,
+                        fontWeight: n.isRead ? FontWeight.normal : FontWeight.bold, 
+                        fontSize: 14,
                         fontFamily: 'Tajawal'
                       )),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(n.body, 
-                      style: TextStyle(color: t.text.withOpacity(0.6), fontSize: 13),
+                      style: TextStyle(color: t.text.withOpacity(0.6), fontSize: 12),
                       maxLines: 2, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 8),
-                    Text(_relativeTime(n.createdAt), 
-                      style: TextStyle(color: t.text.withOpacity(0.3), fontSize: 10)),
                   ],
                 ),
               ),
               if (!n.isRead)
                 Container(
-                  width: 10, height: 10,
+                  width: 8, height: 8,
                   decoration: BoxDecoration(color: t.button, shape: BoxShape.circle),
                 ),
             ],
@@ -189,22 +181,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.notifications_none_rounded, size: 80, color: t.text.withOpacity(0.1)),
-          const SizedBox(height: 20),
-          Text('هدوء تام هنا..', 
-            style: TextStyle(color: t.text.withOpacity(0.4), fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('لا توجد إشعارات جديدة بانتظارك', 
-            style: TextStyle(color: t.text.withOpacity(0.3), fontSize: 14)),
+          Icon(Icons.notifications_none_rounded, size: 60, color: t.text.withOpacity(0.1)),
+          const SizedBox(height: 15),
+          Text('لا توجد إشعارات حالياً', 
+            style: TextStyle(color: t.text.withOpacity(0.3), fontSize: 14, fontFamily: 'Tajawal')),
         ],
       ),
     );
-  }
-
-  String _relativeTime(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'الآن';
-    if (diff.inMinutes < 60) return 'منذ ${diff.inMinutes} دقيقة';
-    if (diff.inHours < 24) return 'منذ ${diff.inHours} ساعة';
-    return 'منذ ${diff.inDays} يوم';
   }
 }
