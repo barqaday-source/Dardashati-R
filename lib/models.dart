@@ -36,7 +36,7 @@ class AppMessage {
       senderId: map['user_id']?.toString() ?? '',
       content: map['content']?.toString() ?? '',
       time: DateTime.parse(map['created_at'] ?? DateTime.now().toIso8601String()),
-      senderName: map['user_name']?.toString(),
+      senderName: map['user_name']?.toString() ?? 'مستخدم',
       senderAvatar: map['avatar_url']?.toString(),
       replyToId: map['reply_to_id']?.toString(),
       replyToSender: map['reply_to_sender_name']?.toString(),
@@ -78,7 +78,7 @@ class AppUser {
       email: map['email']?.toString() ?? '', 
       avatarUrl: map['avatar_url']?.toString() ?? '',
       isOnline: map['is_online'] ?? false,
-      bio: map['bio']?.toString(),
+      bio: map['bio']?.toString() ?? 'لا يوجد نبذة شخصية',
       role: map['role']?.toString() ?? 'user',
       isBanned: map['is_banned'] ?? false,
       themePreference: map['theme_preference']?.toString() ?? 'dark',
@@ -88,15 +88,15 @@ class AppUser {
   bool get isAdmin => role == 'admin';
 }
 
-// --- نموذج غرف الدردشة (إعادة هيكلة) ---
+// --- نموذج غرف الدردشة (تم التحديث لإصلاح أخطاء GitHub) ---
 class AppRoom {
   final String id;
   final String name;
   final String? description;
   final String? imageUrl;
-  final String ownerId; // أضفنا معرف المالك
+  final String ownerId;
   final int memberCount;
-  final bool isPrivate; // أضفنا خاصية الخصوصية
+  final bool isPrivate;
   final DateTime createdAt;
 
   AppRoom({
@@ -110,15 +110,23 @@ class AppRoom {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  // نص مخصص لعدد الأعضاء
-  String get membersLabel => memberCount == 1 ? "عضو واحد" : "$memberCount عضو";
+  // تحسين: استخدام المسمى الجديد لحل خطأ getter 'membersCountLabel'
+  String get membersLabel {
+    if (memberCount <= 0) return "لا يوجد أعضاء";
+    if (memberCount == 1) return "عضو واحد";
+    if (memberCount == 2) return "عضوان";
+    return "$memberCount عضو";
+  }
+
+  // تحسين: إضافة أيقونة افتراضية ذكية للغرفة بدلاً من تخزينها في DB
+  IconData get icon => isPrivate ? Icons.lock_outline_rounded : Icons.groups_rounded;
 
   factory AppRoom.fromMap(Map<String, dynamic> map) {
     return AppRoom(
       id: map['id']?.toString() ?? '',
       name: map['name']?.toString() ?? 'غرفة عامة',
       ownerId: map['owner_id']?.toString() ?? '',
-      description: map['description']?.toString(),
+      description: map['description']?.toString() ?? 'مرحباً بكم في غرفتنا!',
       imageUrl: map['image_url']?.toString(),
       memberCount: map['member_count'] ?? 0,
       isPrivate: map['is_private'] ?? false,
@@ -158,21 +166,22 @@ class AppNotification {
 
   static IconData _getIconForType(String? type) {
     switch (type) {
-      case 'message': return Icons.chat_bubble_outline;
-      case 'system': return Icons.info_outline;
+      case 'message': return Icons.chat_bubble_outline_rounded;
+      case 'system': return Icons.info_outline_rounded;
       case 'alert': return Icons.warning_amber_rounded;
-      default: return Icons.notifications_none;
+      case 'ban': return Icons.block_flipped;
+      default: return Icons.notifications_none_rounded;
     }
   }
 }
 
-// --- نموذج البلاغات (تم الإضافة والتنظيم) ---
+// --- نموذج البلاغات ---
 class AppReport {
   final String id;
-  final String reporterId;    // الشخص الذي أبلغ
-  final String reportedId;    // الشخص المُبلغ عنه
-  final String reason;        // سبب البلاغ
-  final String? status;       // حالة البلاغ (pending, resolved)
+  final String reporterId;
+  final String reportedId;
+  final String reason;
+  final String status; // أضفنا قيم افتراضية للحالة
   final DateTime createdAt;
 
   AppReport({
@@ -195,7 +204,6 @@ class AppReport {
     );
   }
 
-  // دالة لتحويل الكائن إلى Map لإرساله إلى Supabase
   Map<String, dynamic> toMap() {
     return {
       'reporter_id': reporterId,
