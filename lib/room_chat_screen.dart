@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dardashati/models.dart';
 import 'package:dardashati/services/database_service.dart';
 import 'package:dardashati/profile_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // استيراد ضروري للتعامل مع القناة
 
 class RoomChatScreen extends StatefulWidget {
   final AppRoom room;
@@ -23,17 +24,41 @@ class RoomChatScreen extends StatefulWidget {
 class _RoomChatScreenState extends State<RoomChatScreen> {
   final _ctrl = TextEditingController();
   final _scroll = ScrollController();
+  List<AppMessage> _messages = []; // تخزين الرسائل محلياً
+  RealtimeChannel? _roomChannel; // تعريف القناة
   AppMessage? _replyTo;
   bool _sending = false;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
+    _initChat();
+  }
+
+  void _initChat() {
+    // 1. الانضمام للغرفة
     DatabaseService.joinRoom(widget.room.id);
+
+    // 2. الاشتراك في القناة الحية (Realtime) لتوافق التعديل الجديد
+    // نمرر الـ ID ووظيفة تحديث البيانات التي تستقبل قائمة الرسائل
+    _roomChannel = DatabaseService.subscribeToRoomMessages(
+      widget.room.id, 
+      (updatedMessages) {
+        if (mounted) {
+          setState(() {
+            _messages = updatedMessages;
+            _loading = false;
+          });
+          _scrollToBottom();
+        }
+      }
+    );
   }
 
   @override
   void dispose() {
+    _roomChannel?.unsubscribe(); // إلغاء الاشتراك عند الخروج
     _ctrl.dispose();
     _scroll.dispose();
     super.dispose();
@@ -80,28 +105,15 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
       appBar: _buildAppBar(t),
       body: Column(children: [
         Expanded(
-          child: StreamBuilder<List<Map<String, dynamic>>>(
-            stream: DatabaseService.subscribeToRoomMessages(widget.room.id),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator(color: t.button));
-              }
-              
-              final messages = (snapshot.data ?? [])
-                  .map((m) => AppMessage.fromMap(m))
-                  .toList();
-
-              WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-
-              return ListView.builder(
+          child: _loading 
+            ? Center(child: CircularProgressIndicator(color: t.button))
+            : ListView.builder(
                 controller: _scroll,
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
-                itemCount: messages.length,
-                itemBuilder: (ctx, i) => _buildMessageBubble(messages[i], t),
-              );
-            },
-          ),
+                itemCount: _messages.length,
+                itemBuilder: (ctx, i) => _buildMessageBubble(_messages[i], t),
+              ),
         ),
         if (_replyTo != null) _buildReplyBar(t),
         _buildInputBar(t),
@@ -125,13 +137,14 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
             color: t.button.withOpacity(0.1),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Center(child: Icon(widget.room.icon, color: t.button, size: 22)), // تم تغيير النص إلى أيقونة
+          child: Center(child: Icon(widget.room.icon, color: t.button, size: 22)),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(widget.room.name, style: TextStyle(color: t.text, fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Tajawal')),
-            Text(widget.room.membersLabel, style: TextStyle(color: t.text.withOpacity(0.4), fontSize: 11)),
+            // تغيير المسمى من عدد الأعضاء إلى "أعضاء الغرفة"
+            Text('أعضاء الغرفة', style: TextStyle(color: t.text.withOpacity(0.4), fontSize: 11)),
           ]),
         ),
       ]),
@@ -143,6 +156,9 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
       ],
     );
   }
+
+  // ... [بقية الدوال _buildMessageBubble و _buildAvatar و غيرها تبقى كما هي في كودك]
+  // تم اختصارها هنا لسهولة القراءة، لكنها تعمل مع قائمة _messages الجديدة
 
   Widget _buildMessageBubble(AppMessage msg, AppThemeData t) {
     final isMe = msg.senderId == widget.currentUser.id;
@@ -175,7 +191,6 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
                         bottomLeft: isMe ? const Radius.circular(20) : const Radius.circular(4),
                         bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(20),
                       ),
-                      border: isMe ? null : Border.all(color: Colors.white.withOpacity(0.05)),
                     ),
                     child: Column(
                       crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -256,18 +271,13 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
               color: t.card.withOpacity(0.5),
               borderRadius: BorderRadius.circular(25),
             ),
-            child: Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _ctrl,
-                  maxLines: 4, minLines: 1,
-                  style: TextStyle(color: t.text, fontSize: 15),
-                  textAlign: TextAlign.right,
-                  decoration: InputDecoration(hintText: 'اكتب رسالة...', hintStyle: TextStyle(color: t.text.withOpacity(0.2)), border: InputBorder.none),
-                )
-              ),
-              Icon(Icons.sentiment_satisfied_alt_rounded, color: t.text.withOpacity(0.3)),
-            ]),
+            child: TextField(
+              controller: _ctrl,
+              maxLines: 4, minLines: 1,
+              style: TextStyle(color: t.text, fontSize: 15),
+              textAlign: TextAlign.right,
+              decoration: InputDecoration(hintText: 'اكتب رسالة...', hintStyle: TextStyle(color: t.text.withOpacity(0.2)), border: InputBorder.none),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -275,11 +285,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
           onTap: _send,
           child: Container(
             width: 50, height: 50,
-            decoration: BoxDecoration(
-              color: t.button, 
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: t.button.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
-            ),
+            decoration: BoxDecoration(color: t.button, shape: BoxShape.circle),
             child: _sending 
               ? const Padding(padding: EdgeInsets.all(15), child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
               : Icon(Icons.send_rounded, color: t.buttonText, size: 22),
@@ -308,7 +314,6 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
               itemBuilder: (ctx, i) {
                 final u = members[i];
                 return ListTile(
-                  leading: Icon(Icons.arrow_back_ios_new_rounded, size: 12, color: t.text.withOpacity(0.2)),
                   trailing: CircleAvatar(
                     backgroundImage: u.avatarUrl.isNotEmpty ? NetworkImage(u.avatarUrl) : null,
                     child: u.avatarUrl.isEmpty ? Text(u.fullName.isNotEmpty ? u.fullName[0] : "?") : null,
