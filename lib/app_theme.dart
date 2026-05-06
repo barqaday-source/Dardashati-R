@@ -4,56 +4,60 @@ import 'package:flutter/material.dart';
 class AppThemes {
   static List<AppThemeData> allThemes = [
     
-    // 1. أمواج دردشاتي (الأصلي)
+    // 1. أمواج دردشاتي (الأصلي) - هادئ واحترافي
     AppThemeData(
       name: 'dardashati_wave',
       label: 'أمواج دردشاتي',
       background: const Color(0xFFF6F3FF),
       text: const Color(0xFF2A2750),      
       button: const Color(0xFF7C6BE0),    
-      card: const Color(0xFFFFFFFF).withOpacity(0.5), 
-      menu: const Color(0xFFFFFFFF).withOpacity(0.85),
+      card: const Color(0xFFFFFFFF).withOpacity(0.4), 
+      menu: const Color(0xFFFFFFFF).withOpacity(0.8),
       buttonText: Colors.white,
       isDark: false,
+      accentGradient: [const Color(0xFF7C6BE0), const Color(0xFFA294F9)],
     ),
     
-    // 2. مودرن زجاجي
+    // 2. مودرن زجاجي - مشرق وعصري
     AppThemeData(
       name: 'soft_glass',
       label: 'مودرن زجاجي',
       background: const Color(0xFFF8FAFD),
       text: const Color(0xFF1E293B),
       button: const Color(0xFF6366F1),
-      card: const Color(0xFFFFFFFF).withOpacity(0.6),
-      menu: const Color(0xFFF1F5F9).withOpacity(0.8),
+      card: const Color(0xFFFFFFFF).withOpacity(0.5),
+      menu: const Color(0xFFF1F5F9).withOpacity(0.7),
       buttonText: Colors.white,
       isDark: false,
+      accentGradient: [const Color(0xFF6366F1), const Color(0xFF818CF8)],
     ),
     
-    // 3. الملكي المذهب
+    // 3. الملكي المذهب - فخامة داكنة
     AppThemeData(
       name: 'royal_gold',
       label: 'الملكي المذهب',
       background: const Color(0xFF0F0F0F),
       text: const Color(0xFFEFDEC1),
       button: const Color(0xFFD4AF37),
-      card: const Color(0xFF2C2C2C).withOpacity(0.7),
+      card: const Color(0xFF1E1E1E).withOpacity(0.6),
       menu: const Color(0xFF1A1A1A).withOpacity(0.9),
       buttonText: const Color(0xFF1A1A1A),
       isDark: true,
+      accentGradient: [const Color(0xFFD4AF37), const Color(0xFFF5D17E)],
     ),
     
-    // 4. الغابة الليلية
+    // 4. الغابة الليلية - مريح للعين
     AppThemeData(
       name: 'night_forest',
       label: 'الغابة الليلية',
       background: const Color(0xFF0A0F0D),
       text: const Color(0xFFE8F5E9),
       button: const Color(0xFF2E7D32),
-      card: const Color(0xFF1B2420).withOpacity(0.6),
-      menu: const Color(0xFF0D1310).withOpacity(0.9),
+      card: const Color(0xFF1B2420).withOpacity(0.5),
+      menu: const Color(0xFF0D1310).withOpacity(0.85),
       buttonText: Colors.white,
       isDark: true,
+      accentGradient: [const Color(0xFF2E7D32), const Color(0xFF4CAF50)],
     ),
   ];
 
@@ -70,6 +74,7 @@ class AppThemeData {
   final Color menu;
   final Color buttonText;
   final bool isDark;
+  final List<Color> accentGradient; // تدرج لوني مخصص لكل ثيم
 
   AppThemeData({
     required this.name,
@@ -81,21 +86,24 @@ class AppThemeData {
     required this.menu,
     required this.buttonText,
     required this.isDark,
+    required this.accentGradient,
   });
 
-  // توليد ألوان التدرج آلياً بناءً على لون الخلفية
+  // توليد ألوان خلفية الشاشة (Gradient) بشكل آلي ومتناسق
   List<Color> get gradientColors => isDark 
-    ? [background, const Color(0xFF1A1A1A)] 
-    : [background, button.withOpacity(0.1)];
+    ? [background, const Color(0xFF000000)] 
+    : [background, button.withOpacity(0.05)];
 }
 
-// إضافة ميزة الزجاج (Frozen) لكل الـ Widgets
+// --- تطوير تأثير الكلاس مورفيسم (Glassmorphism) ---
 extension GlassmorphismEffect on Widget {
+  /// يحول أي الوجت إلى شكل زجاجي متطور
   Widget frozen({
-    double blur = 15.0, 
+    double blur = 12.0, 
     Color? color, 
-    double borderRadius = 20.0,
+    double borderRadius = 24.0,
     double borderWidth = 1.0,
+    double opacity = 0.1,
   }) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
@@ -103,10 +111,11 @@ extension GlassmorphismEffect on Widget {
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
           decoration: BoxDecoration(
-            color: color ?? Colors.white.withOpacity(0.08),
+            // إذا لم يتم تمرير لون، سيستخدم الأبيض أو الأسود حسب الشفافية
+            color: color ?? (Colors.white.withOpacity(opacity)),
             borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withOpacity(0.2),
               width: borderWidth,
             ),
           ),
