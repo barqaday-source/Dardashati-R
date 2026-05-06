@@ -29,145 +29,52 @@ class DatabaseService {
 
   static Future<AppUser?> getCurrentUser() async {
     if (uid == null) return null;
-    final res = await _client.from('users').select().eq('id', uid!).single();
-    return AppUser.fromMap(res);
+    final res =
+        await _client.from('users').select().eq('id', uid!).maybeSingle();
+    return res != null ? AppUser.fromMap(res) : null;
   }
 
   // ═══════════════════════════════════════════
-  // 2. الرسائل الخاصة - Private Messages
-  // حل أخطاء: 17، 19، 21، 22، 23
+  // 2. إدارة المستخدمين - Users
+  // حل أخطاء: profile_screen.dart:39 (getUserById)
+  //            profile_screen.dart:69 (updateAvatar)
   // ═══════════════════════════════════════════
 
-  /// إرسال رسالة خاصة — Named Parameters لحل خطأ extra_positional_arguments
-  static Future<void> sendMessage({
-    required String content,
-    required String receiverId,
-    String? replyToId,
-  }) async {
-    await _client.from('private_messages').insert({
-      'sender_id': uid,
-      'receiver_id': receiverId,
-      'content': content,
-      if (replyToId != null) 'reply_to_id': replyToId,
-    });
-  }
-
-  /// Stream للرسائل بين المستخدم الحالي ومستخدم آخر — حل خطأ 19 و 22
-  static Stream<List<AppMessage>> getMessagesStream(String otherId) {
-    return _client
-        .from('private_messages')
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: true)
-        .map((data) => data
-            .where((m) =>
-                (m['sender_id'] == uid && m['receiver_id'] == otherId) ||
-                (m['sender_id'] == otherId && m['receiver_id'] == uid))
-            .map((m) => AppMessage.fromMap(m))
-            .toList());
-  }
-
-  /// تحديد الرسائل كمقروءة — حل خطأ 17 و 21
-  static Future<void> markPrivateMessagesRead(String senderId) async {
-    await _client
-        .from('private_messages')
-        .update({'is_read': true})
-        .eq('receiver_id', uid!)
-        .eq('sender_id', senderId);
-  }
-
-  /// جلب آخر رسالة خاصة مع مستخدم معين
-  static Future<AppMessage?> getLastMessage(String otherId) async {
+  /// جلب مستخدم بالـ ID — حل خطأ profile_screen:39
+  static Future<AppUser?> getUserById(String userId) async {
     final res = await _client
-        .from('private_messages')
+        .from('users')
         .select()
-        .or('and(sender_id.eq.$uid,receiver_id.eq.$otherId),and(sender_id.eq.$otherId,receiver_id.eq.$uid)')
-        .order('created_at', ascending: false)
-        .limit(1)
+        .eq('id', userId)
         .maybeSingle();
-    return res != null ? AppMessage.fromMap(res) : null;
+    return res != null ? AppUser.fromMap(res) : null;
   }
 
-  /// عدد الرسائل غير المقروءة
-  static Future<int> getUnreadCount(String senderId) async {
-    final res = await _client
-        .from('private_messages')
-        .select()
-        .eq('receiver_id', uid!)
-        .eq('sender_id', senderId)
-        .eq('is_read', false);
-    return (res as List).length;
-  }
-
-  // ═══════════════════════════════════════════
-  // 3. نظام الغرف - Room Chat
-  // حل أخطاء: 26، 27، 29
-  // ═══════════════════════════════════════════
-
-  /// إرسال رسالة في غرفة — حل خطأ 26
-  static Future<void> sendRoomMessage({
-    required String roomId,
-    required String content,
-    String? replyToId,
-  }) async {
-    await _client.from('messages').insert({
-      'room_id': roomId,
-      'user_id': uid,
-      'content': content,
-      if (replyToId != null) 'reply_to_id': replyToId,
-    });
-  }
-
-  /// Stream لرسائل الغرفة — حل خطأ 27 (Stream<List<AppMessage>>)
-  static Stream<List<AppMessage>> getRoomMessagesStream(String roomId) {
-    return _client
-        .from('messages')
-        .stream(primaryKey: ['id'])
-        .eq('room_id', roomId)
-        .order('created_at', ascending: true)
-        .map((data) => data.map((m) => AppMessage.fromMap(m)).toList());
-  }
-
-  /// جلب أعضاء الغرفة — حل خطأ 29
-  static Future<List<AppUser>> getRoomMembers(String roomId) async {
-    final res = await _client
-        .from('room_members')
-        .select('users(*)')
-        .eq('room_id', roomId);
-    return (res as List)
-        .where((u) => u['users'] != null)
-        .map((u) => AppUser.fromMap(u['users'] as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// جلب جميع الغرف
-  static Future<List<AppRoom>> getRooms() async {
-    final res = await _client.from('rooms').select();
-    return (res as List).map((r) => AppRoom.fromMap(r)).toList();
-  }
-
-  /// الانضمام لغرفة
-  static Future<void> joinRoom(String roomId) async {
-    await _client.from('room_members').upsert({
-      'room_id': roomId,
-      'user_id': uid,
-    });
-  }
-
-  /// مغادرة غرفة
-  static Future<void> leaveRoom(String roomId) async {
+  /// تحديث صورة البروفايل — حل خطأ profile_screen:69
+  static Future<void> updateAvatar(String avatarUrl) async {
     await _client
-        .from('room_members')
-        .delete()
-        .eq('room_id', roomId)
-        .eq('user_id', uid!);
+        .from('users')
+        .update({'avatar_url': avatarUrl}).eq('id', uid!);
+  }
+
+  /// رفع صورة البروفايل إلى Storage ثم تحديثها
+  static Future<String?> uploadAvatar(List<int> fileBytes,
+      {String extension = 'jpg'}) async {
+    final path = 'avatars/$uid.$extension';
+    await _client.storage.from('avatars').uploadBinary(
+          path,
+          fileBytes,
+          fileOptions: const FileOptions(upsert: true),
+        );
+    final url = _client.storage.from('avatars').getPublicUrl(path);
+    await updateAvatar(url);
+    return url;
   }
 
   // ═══════════════════════════════════════════
-  // 4. البروفايل والإعدادات - Profile & Settings
-  // حل أخطاء: 31، 32
+  // 3. البروفايل والإعدادات - Profile & Settings
   // ═══════════════════════════════════════════
 
-  /// تحديث بيانات البروفايل — حل خطأ 31
   static Future<void> updateProfile({
     required String fullName,
     String? bio,
@@ -181,29 +88,164 @@ class DatabaseService {
     }).eq('id', uid!);
   }
 
-  /// حفظ ثيم المستخدم — حل خطأ 32
   static Future<void> saveUserTheme(String themeName) async {
     await _client
         .from('users')
         .update({'theme_preference': themeName}).eq('id', uid!);
   }
 
-  /// جلب تفضيل الثيم الحالي
   static Future<String?> getUserTheme() async {
     final res = await _client
         .from('users')
         .select('theme_preference')
         .eq('id', uid!)
-        .single();
-    return res['theme_preference'] as String?;
+        .maybeSingle();
+    return res?['theme_preference'] as String?;
   }
 
   // ═══════════════════════════════════════════
-  // 5. الإشعارات - Notifications
-  // حل خطأ: 15 (NotificationsScreen methods)
+  // 4. الرسائل الخاصة - Private Messages
+  // حل أخطاء: notifications_screen:41، private_chat_screen:198
+  // الشاشات تستدعي: sendMessage('نص', 'id')  ← positional
+  // لذلك الدالة تقبل positional args مباشرةً
   // ═══════════════════════════════════════════
 
-  /// جلب إشعارات المستخدم
+  static Future<void> sendMessage(
+    String content,
+    String receiverId, {
+    String? replyToId,
+  }) async {
+    await _client.from('private_messages').insert({
+      'sender_id': uid,
+      'receiver_id': receiverId,
+      'content': content,
+      if (replyToId != null) 'reply_to_id': replyToId,
+    });
+  }
+
+  static Stream<List<AppMessage>> getMessagesStream(String otherId) {
+    return _client
+        .from('private_messages')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: true)
+        .map((data) => data
+            .where((m) =>
+                (m['sender_id'] == uid && m['receiver_id'] == otherId) ||
+                (m['sender_id'] == otherId && m['receiver_id'] == uid))
+            .map((m) => AppMessage.fromMap(m))
+            .toList());
+  }
+
+  static Future<void> markPrivateMessagesRead(String senderId) async {
+    await _client
+        .from('private_messages')
+        .update({'is_read': true})
+        .eq('receiver_id', uid!)
+        .eq('sender_id', senderId);
+  }
+
+  static Future<int> getUnreadCount(String senderId) async {
+    final res = await _client
+        .from('private_messages')
+        .select()
+        .eq('receiver_id', uid!)
+        .eq('sender_id', senderId)
+        .eq('is_read', false);
+    return (res as List).length;
+  }
+
+  // ═══════════════════════════════════════════
+  // 5. نظام الغرف - Room Chat
+  // حل أخطاء: 26، 27، 29، room_chat_screen:84
+  // ═══════════════════════════════════════════
+
+  static Future<void> sendRoomMessage({
+    required String roomId,
+    required String content,
+    String? replyToId,
+  }) async {
+    await _client.from('messages').insert({
+      'room_id': roomId,
+      'user_id': uid,
+      'content': content,
+      if (replyToId != null) 'reply_to_id': replyToId,
+    });
+  }
+
+  static Stream<List<AppMessage>> getRoomMessagesStream(String roomId) {
+    return _client
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('room_id', roomId)
+        .order('created_at', ascending: true)
+        .map((data) => data.map((m) => AppMessage.fromMap(m)).toList());
+  }
+
+  /// Subscribe لرسائل الغرفة (Realtime) — حل خطأ room_chat_screen:84
+  static RealtimeChannel subscribeToRoomMessages(
+    String roomId,
+    void Function(List<AppMessage> messages) onData,
+  ) {
+    final channel = _client
+        .channel('room_messages_$roomId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: FilterType.eq,
+            column: 'room_id',
+            value: roomId,
+          ),
+          callback: (_) async {
+            final res = await _client
+                .from('messages')
+                .select()
+                .eq('room_id', roomId)
+                .order('created_at', ascending: true);
+            onData((res as List).map((m) => AppMessage.fromMap(m)).toList());
+          },
+        )
+        .subscribe();
+    return channel;
+  }
+
+  static Future<List<AppUser>> getRoomMembers(String roomId) async {
+    final res = await _client
+        .from('room_members')
+        .select('users(*)')
+        .eq('room_id', roomId);
+    return (res as List)
+        .where((u) => u['users'] != null)
+        .map((u) => AppUser.fromMap(u['users'] as Map<String, dynamic>))
+        .toList();
+  }
+
+  static Future<List<AppRoom>> getRooms() async {
+    final res = await _client.from('rooms').select();
+    return (res as List).map((r) => AppRoom.fromMap(r)).toList();
+  }
+
+  static Future<void> joinRoom(String roomId) async {
+    await _client.from('room_members').upsert({
+      'room_id': roomId,
+      'user_id': uid,
+    });
+  }
+
+  static Future<void> leaveRoom(String roomId) async {
+    await _client
+        .from('room_members')
+        .delete()
+        .eq('room_id', roomId)
+        .eq('user_id', uid!);
+  }
+
+  // ═══════════════════════════════════════════
+  // 6. الإشعارات - Notifications
+  // حل خطأ: home_screen:126
+  // ═══════════════════════════════════════════
+
   static Future<List<AppNotification>> getNotifications() async {
     final res = await _client
         .from('notifications')
@@ -213,7 +255,6 @@ class DatabaseService {
     return (res as List).map((n) => AppNotification.fromMap(n)).toList();
   }
 
-  /// Stream للإشعارات الجديدة
   static Stream<List<AppNotification>> getNotificationsStream() {
     return _client
         .from('notifications')
@@ -223,14 +264,12 @@ class DatabaseService {
         .map((data) => data.map((n) => AppNotification.fromMap(n)).toList());
   }
 
-  /// تحديد إشعار كمقروء
   static Future<void> markNotificationRead(String notificationId) async {
     await _client
         .from('notifications')
         .update({'is_read': true}).eq('id', notificationId);
   }
 
-  /// تحديد جميع الإشعارات كمقروءة
   static Future<void> markAllNotificationsRead() async {
     await _client
         .from('notifications')
@@ -239,11 +278,19 @@ class DatabaseService {
         .eq('is_read', false);
   }
 
+  static Future<int> getUnreadNotificationsCount() async {
+    final res = await _client
+        .from('notifications')
+        .select()
+        .eq('user_id', uid!)
+        .eq('is_read', false);
+    return (res as List).length;
+  }
+
   // ═══════════════════════════════════════════
-  // 6. البحث - Search
+  // 7. البحث - Search
   // ═══════════════════════════════════════════
 
-  /// البحث عن مستخدمين
   static Future<List<AppUser>> searchUsers(String query) async {
     final res = await _client
         .from('users')
@@ -254,7 +301,6 @@ class DatabaseService {
     return (res as List).map((u) => AppUser.fromMap(u)).toList();
   }
 
-  /// البحث عن غرف
   static Future<List<AppRoom>> searchRooms(String query) async {
     final res = await _client
         .from('rooms')
@@ -264,3 +310,4 @@ class DatabaseService {
     return (res as List).map((r) => AppRoom.fromMap(r)).toList();
   }
 }
+
