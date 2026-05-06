@@ -1,187 +1,100 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:dardashati/services/supabase_service.dart'; // الخدمة التي عدلناها
-import 'package:dardashati/models.dart';
-import 'package:dardashati/app_theme.dart'; 
-import 'package:dardashati/home_screen.dart';
-import 'package:dardashati/login_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+// ==================== Models ====================
 
-  // ضبط اتجاه الشاشة
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+class AppMessage {
+  final String id;
+  final String senderId;
+  final String content;
+  final DateTime time; // تم استخدام time ليتوافق مع شاشاتك
+  final String? senderName;
+  final String? senderAvatar;
+  final String? replyToId;
+  final String? replyToSender; 
+  final String? replyToContent;
+  final bool isRead; // حل خطأ الـ getter المفقود
 
-  // تهيئة سوبابيس باستخدام الخدمة الجديدة التي تسحب القيم من البيئة آلياً
-  // لاحظ حذفنا dotenv.load لأننا لم نعد نحتاجها
-  await SupabaseService.initialize();
+  AppMessage({
+    required this.id,
+    required this.senderId,
+    required this.content,
+    required this.time,
+    this.senderName,
+    this.senderAvatar,
+    this.replyToId,
+    this.replyToSender,
+    this.replyToContent,
+    this.isRead = false,
+  });
 
-  runApp(const DardashatiApp());
-}
-
-class DardashatiApp extends StatefulWidget {
-  const DardashatiApp({super.key});
-
-  @override
-  State<DardashatiApp> createState() => _DardashatiAppState();
-}
-
-class _DardashatiAppState extends State<DardashatiApp> {
-  AppThemeData _currentTheme = AppThemes.allThemes[0];
-  bool _initialized = false;
-  final _navigatorKey = GlobalKey<NavigatorState>();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadInitialSettings();
-    _listenToAuthChanges();
-  }
-
-  Future<void> _loadInitialSettings() async {
-    try {
-      // هنا يمكنك مستقبلاً جلب الثيم المفضل للمستخدم من Supabase
-      if (SupabaseService.currentAuthUser != null) {
-         // منطق استعادة الثيم من قاعدة البيانات
-      }
-    } catch (e) {
-      debugPrint("Theme Loading Error: $e");
-    } finally {
-      if (mounted) setState(() => _initialized = true);
-    }
-  }
-
-  void _listenToAuthChanges() {
-    SupabaseService.client.auth.onAuthStateChange.listen((data) {
-      if (data.event == AuthChangeEvent.passwordRecovery) {
-        _navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => UpdatePasswordScreen(theme: _currentTheme)),
-        );
-      }
-    });
-  }
-
-  void _changeTheme(AppThemeData newTheme) {
-    setState(() => _currentTheme = newTheme);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: _navigatorKey,
-      title: 'دردشاتي',
-      debugShowCheckedModeBanner: false,
-      // دعم اللغة العربية والخطوط
-      locale: const Locale('ar', 'SA'),
-      supportedLocales: const [Locale('ar', 'SA')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      theme: ThemeData(
-        fontFamily: 'Tajawal', 
-        useMaterial3: true,
-        brightness: _currentTheme.isDark ? Brightness.dark : Brightness.light,
-        primaryColor: _currentTheme.button,
-        scaffoldBackgroundColor: _currentTheme.background,
-      ),
-      home: !_initialized 
-          ? _buildLoadingScreen() 
-          : _AuthGate(theme: _currentTheme, onThemeChanged: _changeTheme),
-    );
-  }
-
-  Widget _buildLoadingScreen() {
-    return Scaffold(
-      backgroundColor: _currentTheme.background,
-      body: Center(child: CircularProgressIndicator(color: _currentTheme.button)),
+  factory AppMessage.fromMap(Map<String, dynamic> map) {
+    return AppMessage(
+      id: map['id']?.toString() ?? '',
+      senderId: (map['sender_id'] ?? map['user_id'])?.toString() ?? '',
+      content: map['content']?.toString() ?? '',
+      time: DateTime.parse(map['created_at'] ?? DateTime.now().toIso8601String()),
+      senderName: map['user_name']?.toString() ?? 'مستخدم',
+      senderAvatar: map['avatar_url']?.toString(),
+      replyToId: map['reply_to_id']?.toString(),
+      replyToSender: map['reply_to_sender_name']?.toString(),
+      replyToContent: map['reply_to_content']?.toString(),
+      isRead: map['is_read'] ?? false,
     );
   }
 }
 
-class _AuthGate extends StatelessWidget {
-  final AppThemeData theme;
-  final Function(AppThemeData) onThemeChanged;
+class AppUser {
+  final String id;
+  final String fullName;
+  final String email; 
+  final String avatarUrl;
+  final bool isOnline;
+  final String? bio;
+  final String role; 
+  final bool isBanned;
 
-  const _AuthGate({required this.theme, required this.onThemeChanged});
+  AppUser({
+    required this.id,
+    required this.fullName,
+    required this.email,
+    required this.avatarUrl,
+    this.isOnline = false,
+    this.bio,
+    this.role = 'user',
+    this.isBanned = false,
+  });
 
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<AuthState>(
-      stream: SupabaseService.client.auth.onAuthStateChange,
-      builder: (context, snapshot) {
-        final session = SupabaseService.client.auth.currentSession;
-
-        if (session != null) {
-          // تحويل مستخدم سوبابيس إلى AppUser الخاص بمشروعك
-          final user = AppUser(
-            id: session.user.id,
-            fullName: session.user.userMetadata?['full_name'] ?? 'مستخدم',
-            email: session.user.email ?? '', 
-            avatarUrl: session.user.userMetadata?['avatar_url'] ?? '',
-            isOnline: true,
-            themePreference: theme.name,
-          );
-          return HomeScreen(currentUser: user, theme: theme, onThemeChanged: onThemeChanged);
-        }
-
-        return LoginScreen(theme: theme, onThemeChanged: onThemeChanged, isLogin: true);
-      },
+  factory AppUser.fromMap(Map<String, dynamic> map) {
+    return AppUser(
+      id: map['id']?.toString() ?? '',
+      fullName: map['full_name']?.toString() ?? 'مستخدم جديد',
+      email: map['email']?.toString() ?? '', 
+      avatarUrl: map['avatar_url']?.toString() ?? '',
+      isOnline: map['is_online'] ?? false,
+      bio: map['bio']?.toString() ?? '',
+      role: map['role']?.toString() ?? 'user',
+      isBanned: map['is_banned'] ?? false,
     );
   }
 }
 
-class UpdatePasswordScreen extends StatelessWidget {
-  final AppThemeData theme;
-  const UpdatePasswordScreen({super.key, required this.theme});
+class AppRoom {
+  final String id;
+  final String name;
+  final String? description;
+  final int memberCount;
 
-  @override
-  Widget build(BuildContext context) {
-    final passController = TextEditingController();
-    return Scaffold(
-      backgroundColor: theme.background,
-      appBar: AppBar(
-        title: const Text('كلمة مرور جديدة', style: TextStyle(fontFamily: 'Tajawal')), 
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(25),
-        child: Column(
-          children: [
-            TextField(
-              controller: passController,
-              obscureText: true,
-              textAlign: TextAlign.right,
-              decoration: InputDecoration(
-                labelText: 'أدخل كلمة المرور الجديدة',
-                labelStyle: TextStyle(color: theme.button, fontFamily: 'Tajawal'),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.button,
-                minimumSize: const Size(double.infinity, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-              onPressed: () async {
-                await SupabaseService.client.auth.updateUser(
-                  UserAttributes(password: passController.text.trim())
-                );
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: Text('تحديث الآن', style: TextStyle(color: theme.buttonText, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
-            )
-          ],
-        ),
-      ),
+  AppRoom({required this.id, required this.name, this.description, this.memberCount = 0});
+
+  // حل خطأ المسمى في شاشة الغرف
+  String get membersLabel => "$memberCount عضو";
+
+  factory AppRoom.fromMap(Map<String, dynamic> map) {
+    return AppRoom(
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? 'غرفة',
+      description: map['description']?.toString(),
+      memberCount: map['member_count'] ?? 0,
     );
   }
 }
