@@ -1,14 +1,13 @@
-// 1. Dart & Flutter Imports
+// 1. Flutter & Dart Imports
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-// 2. Project Internal Imports
+// 2. Project Imports
 import 'package:dardashati/models.dart'; 
 import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
 import 'package:dardashati/profile_screen.dart';
-// تم إبقاء استيراد واحد فقط والتأكد من مطابقة اسم الملف
-import 'package:dardashati/notifications_screen.dart'; 
+import 'package:dardashati/notifications_screen.dart'; // المسار الآن يشير لكلاس صحيح
 
 class HomeScreen extends StatefulWidget {
   final AppUser currentUser;
@@ -52,37 +51,19 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final t = widget.theme;
-    
     final List<Widget> pages = [
       _RoomsTab(theme: t, currentUser: widget.currentUser),
       _MessagesTab(theme: t, currentUser: widget.currentUser),
       const Center(child: Text("قريباً: شاشة البحث", style: TextStyle(fontFamily: 'Tajawal', color: Colors.white))), 
-      ProfileScreen(
-        userId: widget.currentUser.id, 
-        currentUserId: widget.currentUser.id, 
-        theme: t
-      ),
+      ProfileScreen(userId: widget.currentUser.id, currentUserId: widget.currentUser.id, theme: t),
     ];
 
     return Scaffold(
       extendBody: true,
       body: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: t.gradientColors,
-              ),
-            ),
-          ),
-          Positioned(top: -50, left: -50, child: _BlurOrb(color: t.button.withOpacity(0.2), size: 250)),
-          Positioned(bottom: 100, right: -50, child: _BlurOrb(color: t.button.withOpacity(0.1), size: 200)),
-          SafeArea(
-            bottom: false,
-            child: IndexedStack(index: _tab, children: pages),
-          ),
+          Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: t.gradientColors))),
+          SafeArea(child: IndexedStack(index: _tab, children: pages)),
         ],
       ),
       bottomNavigationBar: _buildGlassBottomNav(t),
@@ -97,9 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
         color: t.card.withOpacity(0.3),
         borderRadius: BorderRadius.circular(30.0),
         border: Border.all(color: Colors.white.withOpacity(0.2)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30.0),
@@ -122,30 +100,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNotificationBtn(AppThemeData t) {
     return IconButton(
       onPressed: () {
-        // تأكد أن الكلاس في ملف notifications_screen.dart اسمه NotificationsScreen
-        Navigator.push(
-          context, 
-          MaterialPageRoute(builder: (_) => NotificationsScreen(theme: t))
-        ).then((_) => _refreshUnreadCount());
+        Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsScreen(theme: t)))
+            .then((_) => _refreshUnreadCount());
       },
       icon: Stack(
-        clipBehavior: Clip.none,
         children: [
           Icon(Icons.notifications_none_rounded, color: t.text.withOpacity(0.5), size: 28),
           if (_unreadNotifications > 0)
-            Positioned(
-              right: -2, top: -2,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                child: Text('$_unreadNotifications', 
-                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-              ),
-            ),
+            Positioned(right: 0, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                child: Text('$_unreadNotifications', style: const TextStyle(color: Colors.white, fontSize: 8)))),
         ],
       ),
     );
   }
 }
 
-// الـ Widgets المساعدة (BlurOrb, NavItem, Tabs) تبقى كما هي أسفل الملف...
+// الـ Widgets المساعدة (BlurOrb, NavItem, Tabs) تُضاف هنا كالعادة...
+
