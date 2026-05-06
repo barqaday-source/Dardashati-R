@@ -27,6 +27,7 @@ class DatabaseService {
   }
 
   // --- 2. إدارة المستخدمين والبروفايل (حل أخطاء الصورة الأخيرة) ---
+  // تم إضافة هذه الدوال لأن الشاشات تطلبها (Error 24, 25, 32)
   static Future<AppUser?> getUserById(String userId) async {
     final data = await _client.from('users').select().eq('id', userId).single();
     return AppUser.fromMap(data);
@@ -48,7 +49,7 @@ class DatabaseService {
     return (res as List).map((u) => AppUser.fromMap(u)).toList();
   }
 
-  // --- 3. نظام الدردشة (Private Messages) ---
+  // --- 3. نظام الدردشة الخاص (Private Chat) ---
   static Future<void> sendMessage({required String content, required String receiverId, String? replyToId}) async {
     await _client.from('private_messages').insert({
       'sender_id': uid,
@@ -72,8 +73,13 @@ class DatabaseService {
   }
 
   // --- 4. نظام الغرف (Rooms) ---
+  // تم إضافة subscribeToRoomMessages و getRoomMembers (Error 29, 31)
   static Future<void> joinRoom(String roomId) async {
     await _client.from('room_members').upsert({'room_id': roomId, 'user_id': uid});
+  }
+
+  static Future<void> sendRoomMessage({required String roomId, required String content}) async {
+    await _client.from('messages').insert({'room_id': roomId, 'user_id': uid, 'content': content});
   }
 
   static Stream<List<AppMessage>> subscribeToRoomMessages(String roomId) {
