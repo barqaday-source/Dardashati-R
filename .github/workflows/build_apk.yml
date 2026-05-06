@@ -23,26 +23,23 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      - name: Virtual Identity Sync
+      - name: Project Standardization
         run: |
-          # 1. تصحيح الاسم في ملف الإعدادات
+          # توحيد الهوية التقنية للمشروع
           sed -i 's/name: .*/name: dardashati_r/' pubspec.yaml
-          
-          # 2. تصحيح الاستدعاءات داخل كل ملفات المشروع بلا استثناء
           find . -name "*.dart" -exec sed -i 's/package:dardashati\//package:dardashati_r\//g' {} +
           find . -name "*.dart" -exec sed -i 's/package:Dardashati-R\//package:dardashati_r\//g' {} +
-          
           flutter pub get
 
       - name: Clean & Reconstruct Android
         run: |
-          # مسح وإعادة بناء مجلد أندرويد لضمان نظافة Gradle
+          # بناء هيكل أندرويد بمعايير 2026 المتوافقة مع Flutter 3.19
           rm -rf android
           flutter create . --platforms android --project-name dardashati_r
 
       - name: Build Production APK
         run: |
-          # الإشارة الصريحة للملف الرئيسي لتجنب خطأ "No main method"
+          # البناء النهائي بأعلى جودة مع تجاهل التحذيرات غير المؤثرة
           flutter build apk --release --target lib/main.dart --no-tree-shake-icons
 
       - name: Export Final Application
