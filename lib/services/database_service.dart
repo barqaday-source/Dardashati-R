@@ -26,8 +26,7 @@ class DatabaseService {
     await _client.auth.signOut();
   }
 
-  // --- 2. إدارة المستخدمين والبروفايل (حل أخطاء الصورة الأخيرة) ---
-  // تم إضافة هذه الدوال لأن الشاشات تطلبها (Error 24, 25, 32)
+  // --- 2. إدارة المستخدمين والبروفايل (حل أخطاء الصور) ---
   static Future<AppUser?> getUserById(String userId) async {
     final data = await _client.from('users').select().eq('id', userId).single();
     return AppUser.fromMap(data);
@@ -49,7 +48,7 @@ class DatabaseService {
     return (res as List).map((u) => AppUser.fromMap(u)).toList();
   }
 
-  // --- 3. نظام الدردشة الخاص (Private Chat) ---
+  // --- 3. نظام الدردشة الخاص (حل أخطاء Parameter Missing - Error 18, 19, 22, 23) ---
   static Future<void> sendMessage({required String content, required String receiverId, String? replyToId}) async {
     await _client.from('private_messages').insert({
       'sender_id': uid,
@@ -72,14 +71,17 @@ class DatabaseService {
         .eq('receiver_id', uid!).eq('sender_id', senderId);
   }
 
-  // --- 4. نظام الغرف (Rooms) ---
-  // تم إضافة subscribeToRoomMessages و getRoomMembers (Error 29, 31)
-  static Future<void> joinRoom(String roomId) async {
-    await _client.from('room_members').upsert({'room_id': roomId, 'user_id': uid});
+  // --- 4. نظام الغرف (حل خطأ sendRoomMessage - Error 28) ---
+  static Future<void> sendRoomMessage({required String roomId, required String content}) async {
+    await _client.from('messages').insert({
+      'room_id': roomId, 
+      'user_id': uid, 
+      'content': content
+    });
   }
 
-  static Future<void> sendRoomMessage({required String roomId, required String content}) async {
-    await _client.from('messages').insert({'room_id': roomId, 'user_id': uid, 'content': content});
+  static Future<void> joinRoom(String roomId) async {
+    await _client.from('room_members').upsert({'room_id': roomId, 'user_id': uid});
   }
 
   static Stream<List<AppMessage>> subscribeToRoomMessages(String roomId) {
@@ -116,3 +118,4 @@ class DatabaseService {
     return await _client.from('notifications').select().eq('user_id', uid!);
   }
 }
+
