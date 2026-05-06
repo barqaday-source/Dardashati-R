@@ -1,4 +1,4 @@
-name: "Dardashati Auto-Fix & Build System"
+name: "Dardashati High-Level Build System"
 
 on:
   push:
@@ -23,27 +23,23 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      # ==========================================
-      # 🕵️‍♂️ المرحلة 1: المحلل الذكي وبناء العقل المدبر (main.dart)
-      # ==========================================
-      - name: "🧠 Intelligent Logic Constructor"
+      # الخطوة 1: تشغيل السكريبت (هو اللي راح يدخل للملف ويحذفه ويعدله)
+      - name: "🧠 Intelligent Logic Overwrite"
         run: |
           cat << 'EOF' > auto_builder.py
           import os
           import re
 
           def build_perfect_main():
-              # فحص الاحتياجات الحقيقية للشاشات لتجنب الأخطاء الـ 16
               screens = {'LoginScreen': 'lib/login_screen.dart', 'HomeScreen': 'lib/home_screen.dart'}
               needs = {}
               for name, path in screens.items():
                   if os.path.exists(path):
-                      with open(path, 'r') as f:
+                      with open(path, 'r', encoding='utf-8') as f:
                           content = f.read()
-                          # استخراج الباراميترات المطلوبة (مثل theme, currentUser)
                           needs[name] = re.findall(r'required this\.(\w+)', content)
 
-              # بناء كود main.dart يدعم AppUser و AppThemeData (حل تضارب الأنواع)
+              # الكود المصلح الذي سيحل مشكلة الـ const وتضارب الموديلات (cite: 1000005960.png)
               main_code = """
           import 'package:flutter/material.dart';
           import 'package:supabase_flutter/supabase_flutter.dart';
@@ -54,7 +50,8 @@ jobs:
 
           void main() async {
             WidgetsFlutterBinding.ensureInitialized();
-            await Supabase.initialize(url: 'YOUR_URL', anonKey: 'YOUR_KEY');
+            // ضع روابط Supabase الخاصة بك هنا
+            await Supabase.initialize(url: 'https://xyz.supabase.co', anonKey: 'your_key');
             runApp(const DardashatiApp());
           }
 
@@ -82,6 +79,7 @@ jobs:
                       ", ".join([f"{p}: {'true' if p=='isLogin' else '_theme' if p=='theme' else '_updateTheme'}" for p in needs.get('LoginScreen', [])]) + \
                       """);
                     }
+                    // تحويل المستخدم إلى AppUser المطلوب في سجلاتك (cite: 1000005960.png)
                     return HomeScreen(""" + \
                       ", ".join([f"{p}: {'AppUser.fromSupabase(user)' if p=='currentUser' else '_theme' if p=='theme' else '_updateTheme'}" for p in needs.get('HomeScreen', [])]) + \
                       """);
@@ -92,40 +90,35 @@ jobs:
           }
           """
               if os.path.exists('lib'):
-                  with open('lib/main.dart', 'w') as f:
+                  with open('lib/main.dart', 'w', encoding='utf-8') as f:
                       f.write(main_code)
-                  print("✅ تم بناء وحقن ملف main.dart المتكامل بنجاح!")
+                  print("✅ تم سحق ملف main.dart القديم وحقن المنطق الجديد بنجاح!")
           
           if __name__ == "__main__":
               build_perfect_main()
           EOF
           python3 auto_builder.py
 
-      # ==========================================
-      # 🧹 المرحلة 2: التنظيف العميق وحل مشاكل Gradle 
-      # ==========================================
+      # الخطوة 2: تنظيف وحل مشاكل Gradle وبناء التطبيق
       - name: "🛠️ Final Polish & Build"
         run: |
-          # 1. تنظيف الهوية وتحديث الحزم
+          # إصلاح الأسماء في pubspec لضمان توافق الحزم
           sed -i 's/name: .*/name: dardashati_r/' pubspec.yaml
           find . -name "*.dart" -exec sed -i 's/package:dardashati\//package:dardashati_r\//g' {} +
           flutter pub get
           
-          # 2. تدمير وإعادة بناء مجلد أندرويد (الحل الجذري لخطأ Gradle)
+          # مسح مجلد أندرويد المعطوب (cite: 1000005957.png)
           rm -rf android
           flutter create . --platforms android --project-name dardashati_r
           
-          # 3. استخدام أداة جوجل لإصلاح التحذيرات البسيطة تلقائياً
+          # استخدام أداة جوجل الرسمية لإصلاح أي تحذيرات متبقية
           dart fix --apply
           
-          # 4. البناء الصارم والنهائي
+          # البناء الصارم لإنتاج APK سليم 100%
           flutter build apk --release --target lib/main.dart --no-tree-shake-icons
 
-      # ==========================================
-      # 📦 المرحلة 3: تصدير التطبيق النهائي السليم
-      # ==========================================
-      - name: Export Final Application
+      - name: Export Verified APK
         uses: actions/upload-artifact@v4
         with:
-          name: Dardashati-Verified-APK
+          name: Dardashati-Final-Stable
           path: build/app/outputs/flutter-apk/app-release.apk
