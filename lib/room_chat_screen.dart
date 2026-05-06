@@ -131,7 +131,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(widget.room.name, style: TextStyle(color: t.text, fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Tajawal')),
-            Text(widget.room.membersCountLabel, style: TextStyle(color: t.text.withOpacity(0.4), fontSize: 11)),
+            Text(widget.room.membersLabel, style: TextStyle(color: t.text.withOpacity(0.4), fontSize: 11)),
           ]),
         ),
       ]),
