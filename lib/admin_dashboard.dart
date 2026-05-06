@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
-import 'package:dardashati/models.dart'; // استيراد النماذج مهم جداً
+import 'package:dardashati/models.dart';
 
 class AdminDashboard extends StatefulWidget {
   final AppThemeData theme;
@@ -15,7 +15,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     final t = widget.theme;
-    // الحصول على ID الأدمن الحالي لمنع حظر نفسه (إدارة ذكية)
     final String? currentAdminId = DatabaseService.uid;
     
     return Scaffold(
@@ -23,7 +22,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       appBar: AppBar(
         backgroundColor: t.card,
         elevation: 0,
-        title: Text('إدارة المجتمع الذكية', 
+        title: Text('رقابة المجتمع', 
           style: TextStyle(fontFamily: 'Tajawal', color: t.text, fontWeight: FontWeight.bold)),
         centerTitle: true,
         leading: IconButton(
@@ -32,7 +31,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
       ),
       body: StreamBuilder<List<AppUser>>(
-        // استخدام StreamBuilder مع الموديل AppUser مباشرة بدلاً من Map
         stream: DatabaseService.getAdminUsersStream(), 
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -40,29 +38,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
           }
           
           if (snapshot.hasError) {
-            return Center(child: Text('خطأ في جلب البيانات', style: TextStyle(color: t.text, fontFamily: 'Tajawal')));
+            return Center(child: Text('خطأ في الاتصال بالسيرفر', 
+              style: TextStyle(color: Colors.red, fontFamily: 'Tajawal')));
           }
           
           final users = snapshot.data ?? [];
-
-          if (users.isEmpty) {
-            return Center(child: Text('لا يوجد أعضاء حالياً', style: TextStyle(color: t.text, fontFamily: 'Tajawal')));
-          }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: users.length,
             itemBuilder: (context, index) {
               final user = users[index];
-              final bool isSelf = user.id == currentAdminId; // هل هذا هو الأدمن الحالي؟
+              final bool isSelf = user.id == currentAdminId;
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: user.isBanned ? Colors.red.withOpacity(0.05) : t.card.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                    color: user.isBanned ? Colors.red.withOpacity(0.2) : Colors.white.withOpacity(0.05)
+                    color: user.isBanned ? Colors.red.withOpacity(0.2) : Colors.transparent
                   ),
                 ),
                 child: ListTile(
@@ -75,49 +70,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ? Text(user.fullName[0], style: TextStyle(color: t.button, fontWeight: FontWeight.bold)) 
                         : null,
                   ),
-                  title: Row(
-                    children: [
-                      if (isSelf) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: t.button, borderRadius: BorderRadius.circular(5)),
-                          child: const Text('أنت', style: TextStyle(color: Colors.white, fontSize: 10)),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Expanded(
-                        child: Text(user.fullName, 
-                          style: TextStyle(color: t.text, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
-                      ),
-                    ],
-                  ),
-                  subtitle: Text(user.email, style: TextStyle(color: t.text.withOpacity(0.5), fontSize: 12)),
+                  title: Text(user.fullName, 
+                    style: TextStyle(color: t.text, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
+                  subtitle: Text(user.isBanned ? 'حساب مقيد' : 'عضو نشط', 
+                    style: TextStyle(color: user.isBanned ? Colors.red : Colors.green, fontSize: 11)),
                   trailing: isSelf 
-                      ? const Icon(Icons.admin_panel_settings, color: Colors.blueAccent)
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(user.isBanned ? 'محظور' : 'نشط', 
-                                style: TextStyle(
-                                  color: user.isBanned ? Colors.red : Colors.greenAccent, 
-                                  fontSize: 10, 
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Tajawal'
-                                )),
-                            const SizedBox(height: 4),
-                            SizedBox(
-                              height: 25,
-                              width: 40,
-                              child: Switch(
-                                value: user.isBanned,
-                                activeColor: Colors.redAccent,
-                                onChanged: (value) async {
-                                  // تحديث ذكي: لا يسمح بتغيير حالة الأدمن لنفسه
-                                  await DatabaseService.toggleUserBan(user.id, value);
-                                },
-                              ),
-                            ),
-                          ],
+                      ? Icon(Icons.shield_rounded, color: t.button)
+                      : Switch(
+                          value: user.isBanned,
+                          activeColor: Colors.redAccent,
+                          onChanged: (value) async {
+                            await DatabaseService.toggleUserBan(user.id, value);
+                          },
                         ),
                 ),
               );
