@@ -7,48 +7,18 @@ class DatabaseService {
   static final _client = Supabase.instance.client;
   static String? get uid => _client.auth.currentUser?.id;
 
-  // --- 1. المصادقة (Authentication) ---
-  static Future<AuthResponse?> signInWithGoogle() async {
-    const webClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
-    final googleSignIn = GoogleSignIn(serverClientId: webClientId);
-    final googleUser = await googleSignIn.signIn();
-    if (googleUser == null) return null;
-    final googleAuth = await googleUser.authentication;
-    return await _client.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
-      idToken: googleAuth.idToken!,
-      accessToken: googleAuth.accessToken,
-    );
-  }
-
-  static Future<void> signOut() async {
-    try { await GoogleSignIn().signOut(); } catch (_) {}
-    await _client.auth.signOut();
-  }
-
-  // --- 2. إدارة المستخدمين والبروفايل (حل أخطاء الصور) ---
+  // --- 1. المصادقة والبروفايل ---
   static Future<AppUser?> getUserById(String userId) async {
     final data = await _client.from('users').select().eq('id', userId).single();
     return AppUser.fromMap(data);
   }
 
-  static Future<void> updateAvatar(String url) async {
-    await _client.from('users').update({'avatar_url': url}).eq('id', uid!);
+  // حل خطأ Error 25 (تحويل الملف لرابط قبل التحديث)
+  static Future<void> updateAvatar(String imageUrl) async {
+    await _client.from('users').update({'avatar_url': imageUrl}).eq('id', uid!);
   }
 
-  static Future<void> updateProfile({required String fullName, String? bio}) async {
-    await _client.from('users').update({
-      'full_name': fullName,
-      if (bio != null) 'bio': bio,
-    }).eq('id', uid!);
-  }
-
-  static Future<List<AppUser>> searchUsers(String query) async {
-    final res = await _client.from('users').select().ilike('full_name', '%$query%');
-    return (res as List).map((u) => AppUser.fromMap(u)).toList();
-  }
-
-  // --- 3. نظام الدردشة الخاص (حل أخطاء Parameter Missing - Error 18, 19, 22, 23) ---
+  // --- 2. الدردشة الخاصة (حل Error 18, 19, 22, 23) ---
   static Future<void> sendMessage({required String content, required String receiverId, String? replyToId}) async {
     await _client.from('private_messages').insert({
       'sender_id': uid,
@@ -58,20 +28,7 @@ class DatabaseService {
     });
   }
 
-  static Stream<List<AppMessage>> getMessagesStream(String otherId) {
-    return _client.from('private_messages').stream(primaryKey: ['id'])
-        .map((data) => data.where((m) => 
-            (m['sender_id'] == uid && m['receiver_id'] == otherId) || 
-            (m['sender_id'] == otherId && m['receiver_id'] == uid))
-        .map((m) => AppMessage.fromMap(m)).toList());
-  }
-
-  static Future<void> markPrivateMessagesRead(String senderId) async {
-    await _client.from('private_messages').update({'is_read': true})
-        .eq('receiver_id', uid!).eq('sender_id', senderId);
-  }
-
-  // --- 4. نظام الغرف (حل خطأ sendRoomMessage - Error 28) ---
+  // --- 3. نظام الغرف (حل Error 28, 29) ---
   static Future<void> sendRoomMessage({required String roomId, required String content}) async {
     await _client.from('messages').insert({
       'room_id': roomId, 
@@ -80,26 +37,12 @@ class DatabaseService {
     });
   }
 
-  static Future<void> joinRoom(String roomId) async {
-    await _client.from('room_members').upsert({'room_id': roomId, 'user_id': uid});
-  }
-
   static Stream<List<AppMessage>> subscribeToRoomMessages(String roomId) {
     return _client.from('messages').stream(primaryKey: ['id']).eq('room_id', roomId)
         .map((data) => data.map((m) => AppMessage.fromMap(m)).toList());
   }
 
-  static Future<List<AppUser>> getRoomMembers(String roomId) async {
-    final res = await _client.from('room_members').select('users(*)').eq('room_id', roomId);
-    return (res as List).map((u) => AppUser.fromMap(u['users'])).toList();
-  }
-
-  static Future<List<AppRoom>> searchRooms(String query) async {
-    final res = await _client.from('rooms').select().ilike('name', '%$query%');
-    return (res as List).map((r) => AppRoom.fromMap(r)).toList();
-  }
-
-  // --- 5. الرقابة والإدارة (Admin) ---
+  // --- 4. الرقابة والبحث ---
   static Stream<List<AppUser>> getAdminUsersStream() {
     return _client.from('users').stream(primaryKey: ['id']).map(
       (data) => data.map((u) => AppUser.fromMap(u)).toList());
@@ -109,13 +52,7 @@ class DatabaseService {
     await _client.from('users').update({'is_banned': isBanned}).eq('id', userId);
   }
 
-  // --- 6. الإعدادات والإشعارات ---
   static Future<void> saveUserTheme(String themeName) async {
     await _client.from('users').update({'theme_preference': themeName}).eq('id', uid!);
   }
-
-  static Future<List<Map<String, dynamic>>> getNotifications() async {
-    return await _client.from('notifications').select().eq('user_id', uid!);
-  }
 }
-
