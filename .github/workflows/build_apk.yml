@@ -28,23 +28,22 @@ jobs:
           # 1. تصحيح الاسم في ملف الإعدادات
           sed -i 's/name: .*/name: dardashati_r/' pubspec.yaml
           
-          # 2. تصحيح الاستدعاءات في الذاكرة المؤقتة
-          find . -name "*.dart" -print0 | xargs -0 sed -i 's/package:dardashati\//package:dardashati_r\//g' || true
-          find . -name "*.dart" -print0 | xargs -0 sed -i 's/package:Dardashati-R\//package:dardashati_r\//g' || true
+          # 2. تصحيح الاستدعاءات داخل كل ملفات المشروع بلا استثناء
+          find . -name "*.dart" -exec sed -i 's/package:dardashati\//package:dardashati_r\//g' {} +
+          find . -name "*.dart" -exec sed -i 's/package:Dardashati-R\//package:dardashati_r\//g' {} +
           
           flutter pub get
 
       - name: Clean & Reconstruct Android
         run: |
-          # حذف مجلد أندرويد القديم تماماً لإصلاح مشكلة Gradle
+          # مسح وإعادة بناء مجلد أندرويد لضمان نظافة Gradle
           rm -rf android
-          # إعادة إنشاء المجلد بإعدادات حديثة تتوافق مع نسخة Flutter
           flutter create . --platforms android --project-name dardashati_r
 
       - name: Build Production APK
         run: |
-          # الآن سيتم بناء الـ APK باستخدام إعدادات Gradle الجديدة
-          flutter build apk --release --no-tree-shake-icons
+          # الإشارة الصريحة للملف الرئيسي لتجنب خطأ "No main method"
+          flutter build apk --release --target lib/main.dart --no-tree-shake-icons
 
       - name: Export Final Application
         uses: actions/upload-artifact@v4
