@@ -8,7 +8,7 @@ class DatabaseService {
   static final _client = Supabase.instance.client;
   static String? get uid => _client.auth.currentUser?.id;
 
-  // --- 1. إدارة الحساب والصور ---
+  // --- 1. الملف الشخصي (Profile & Settings) ---
   static Future<AppUser?> getUserById(String id) async {
     try {
       final data = await _client.from('users').select().eq('id', id).single();
@@ -20,17 +20,30 @@ class DatabaseService {
     if (uid == null) return;
     final filePath = 'avatars/$uid.jpg';
     await _client.storage.from('avatars').upload(filePath, imageFile, 
-        fileOptions: const FileOptions(upsert: true));
+        fileOptions: const FileOptions(cacheControl: '3600', upsert: true));
     final url = _client.storage.from('avatars').getPublicUrl(filePath);
     await _client.from('users').update({'avatar_url': url}).eq('id', uid!);
   }
 
-  // --- 2. المراسلة (حل أخطاء sendMessage & getMessagesStream) ---
-  static Future<void> sendMessage({required String receiverId, required String content}) async {
+  static Future<void> updateProfile({required String fullName, String? bio}) async {
+    await _client.from('users').update({
+      'full_name': fullName,
+      if (bio != null) 'bio': bio,
+    }).eq('id', uid!);
+  }
+
+  static Future<void> saveUserTheme(String themeName) async {
+    await _client.from('users').update({'theme_preference': themeName}).eq('id', uid!);
+  }
+
+  // --- 2. المراسلة الخاصة (Private Chat) ---
+  // تم تعديل الأسماء لتطابق نداء الشاشات (content, receiverId)
+  static Future<void> sendMessage(String content, String receiverId, {String? replyToId}) async {
     await _client.from('private_messages').insert({
       'sender_id': uid,
       'receiver_id': receiverId,
       'content': content,
+      'reply_to_id': replyToId,
     });
   }
 
@@ -46,9 +59,35 @@ class DatabaseService {
         .eq('receiver_id', uid!).eq('sender_id', senderId);
   }
 
-  // --- 3. الغرف والبحث (حل أخطاء joinRoom & searchRooms) ---
-  static Future<void> joinRoom(String roomId) async {
-    await _client.from('room_members').upsert({'room_id': roomId, 'user_id': uid});
+  // --- 3. غرف الدردشة (Room Chat) ---
+  static Future<void> sendRoomMessage({required String roomId, required String content}) async {
+    await _client.from('messages').insert({'room_id': roomId, 'user_id': uid, 'content': content});
+  }
+
+  static Stream<List<Map<String, dynamic>>> subscribeToRoomMessages(String roomId) {
+    return _client.from('messages').stream(primaryKey: ['id']).eq('room_id', roomId).order('created_at');
+  }
+
+  static Future<List<AppUser>> getRoomMembers(String roomId) async {
+    final res = await _client.from('room_members').select('users(*)').eq('room_id', roomId);
+    return (res as List).map((item) => AppUser.fromMap(item['users'])).toList();
+  }
+
+  // --- 4. التنبيهات (Notifications) ---
+  static Stream<List<Map<String, dynamic>>> getNotificationsStream() {
+    return _client.from('notifications').stream(primaryKey: ['id'])
+        .eq('user_id', uid!).order('created_at', ascending: false);
+  }
+
+  static Future<List<Map<String, dynamic>>> getNotifications() async {
+    final res = await _client.from('notifications').select().eq('user_id', uid!);
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  // --- 5. البحث والإدارة ---
+  static Future<List<AppUser>> searchUsers(String query) async {
+    final res = await _client.from('users').select().ilike('full_name', '%$query%');
+    return (res as List).map((u) => AppUser.fromMap(u)).toList();
   }
 
   static Future<List<AppRoom>> searchRooms(String query) async {
@@ -56,17 +95,6 @@ class DatabaseService {
     return (res as List).map((r) => AppRoom.fromMap(r)).toList();
   }
 
-  // --- 4. التنبيهات (حل أخطاء getNotifications) ---
-  static Stream<List<Map<String, dynamic>>> getNotificationsStream() {
-    return _client.from('notifications').stream(primaryKey: ['id'])
-        .eq('user_id', uid!).order('created_at', ascending: false);
-  }
-
-  static Future<List<Map<String, dynamic>>> getNotifications() async {
-    return await _client.from('notifications').select().eq('user_id', uid!);
-  }
-
-  // --- 5. الإدارة والبلاغات ---
   static Stream<List<AppUser>> getAdminUsersStream() {
     return _client.from('users').stream(primaryKey: ['id']).map((d) => d.map((u) => AppUser.fromMap(u)).toList());
   }
@@ -78,6 +106,22 @@ class DatabaseService {
     await _client.from('reports').insert({'reporter_id': uid, 'reported_id': targetId, 'reason': reason});
   }
 
-  // --- 6. المصادقة ---
-  static Future<void> signOut() async => await _client.auth.signOut();
+  // --- 6. المصادقة (Auth) ---
+  static Future<AuthResponse?> signInWithGoogle() async {
+    const webClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+    final googleSignIn = GoogleSignIn(serverClientId: webClientId);
+    final googleUser = await googleSignIn.signIn();
+    if (googleUser == null) return null;
+    final googleAuth = await googleUser.authentication;
+    return await _client.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: googleAuth.idToken!,
+      accessToken: googleAuth.accessToken,
+    );
+  }
+
+  static Future<void> signOut() async {
+    try { await GoogleSignIn().signOut(); } catch (_) {}
+    await _client.auth.signOut();
+  }
 }
