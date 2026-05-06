@@ -1,4 +1,4 @@
-name: dardashati 
+name: dardashati
 description: "دردشاتي: منصة تواصل فورية تجمع بين الأمان الفائق والسرعة المذهلة، مصممة لربط عالمك بخصوصية تامة."
 publish_to: 'none'
 
@@ -15,7 +15,6 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # --- المحرك الأساسي (Supabase & Google) ---
-  # تم تحديث الإصدار ليتوافق مع ميزات الرفع الجديدة
   supabase_flutter: ^2.5.0
   google_sign_in: ^6.2.1 
 
@@ -26,8 +25,10 @@ dependencies:
   
   # --- إدارة الوسائط والبيانات ---
   cached_network_image: ^3.3.1
-  image_picker: ^1.1.2 # تم الإبقاء على النسخة الأحدث وحذف المكرر
+  image_picker: ^1.1.2
   shared_preferences: ^2.2.3
+  # ضروري لإدارة تصاريح الكاميرا والصور في iOS وأندرويد
+  permission_handler: ^11.3.1 
   
   # --- تجربة المستخدم التفاعلية ---
   shimmer: ^3.0.0
@@ -40,4 +41,15 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # إضافة الخطوط إذا كنت تستخدم خطوطاً مخصصة مثل Tajawal مستقبلاً
+
+  # أضفنا هذا القسم لضمان قبول المنصات للهيكل الكامل
+  assets:
+    - assets/images/
+    # - assets/icons/
+
+  fonts:
+    - family: Tajawal
+      fonts:
+        - asset: assets/fonts/Tajawal-Regular.ttf
+        - asset: assets/fonts/Tajawal-Bold.ttf
+          weight: 700
