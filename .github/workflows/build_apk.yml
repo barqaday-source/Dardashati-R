@@ -26,7 +26,7 @@ jobs:
       # الخطوة 1: تشغيل السكريبت (هو اللي راح يدخل للملف ويحذفه ويعدله)
       - name: "🧠 Intelligent Logic Overwrite"
         run: |
-          cat << 'EOF' > auto_builder.py
+          cat << 'EOF' > Python.py
           import os
           import re
 
