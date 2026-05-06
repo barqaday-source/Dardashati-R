@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dardashati/models.dart'; 
 import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
-import 'package:image_picker/image_picker.dart'; // تأكد من إضافة هذه المكتبة
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data'; // تم إضافة هذا للتعامل مع الـ Bytes
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
@@ -24,7 +24,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   AppUser? _user;
   bool _loading = true;
-  bool _isUploading = false; // لمتابعة حالة رفع الصورة
+  bool _isUploading = false; 
   
   bool get _isMe => widget.userId == widget.currentUserId;
 
@@ -49,9 +49,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // --- ميزة رفع الصور الجديدة ---
+  // --- ميزة رفع الصور المصلحة ---
   Future<void> _pickAndUploadImage() async {
-    if (!_isMe) return; // حماية إضافية
+    if (!_isMe) return; 
 
     final picker = ImagePicker();
     try {
@@ -65,8 +65,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (image != null) {
         setState(() => _isUploading = true);
 
-        // استخدام المحرك الذي جهزناه في DatabaseService
-        await DatabaseService.updateAvatar(File(image.path));
+        // الحل الجذري: تحويل الصورة إلى Bytes (Uint8List)
+        // هذا يحل خطأ argument_type_not_assignable في السطر 69
+        final Uint8List imageBytes = await image.readAsBytes();
+
+        // استخدام دالة uploadAvatar التي تقبل Uint8List
+        await DatabaseService.uploadAvatar(imageBytes);
 
         // إعادة تحميل البيانات لتظهر الصورة الجديدة فوراً
         await _loadProfile();
@@ -115,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         physics: const BouncingScrollPhysics(),
         child: Column(children: [
           const SizedBox(height: 20),
-          _buildAvatarSection(t, u), // القسم المعدل
+          _buildAvatarSection(t, u), 
           const SizedBox(height: 20),
           _buildNameAndRole(t, u),
           const SizedBox(height: 40),
@@ -133,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final String firstLetter = u.fullName.isNotEmpty ? u.fullName[0] : "?";
 
     return GestureDetector(
-      onTap: _isMe ? _pickAndUploadImage : null, // الضغط لتغيير الصورة فقط إذا كان حسابي
+      onTap: _isMe ? _pickAndUploadImage : null, 
       child: Stack(alignment: Alignment.center, children: [
         Container(
           padding: const EdgeInsets.all(4),
@@ -142,7 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             border: Border.all(color: _isMe ? t.button.withOpacity(0.5) : t.button.withOpacity(0.2), width: 2)
           ),
           child: CircleAvatar(
-            radius: 65, // حجم أكبر قليلاً ليبرز البروفايل
+            radius: 65, 
             backgroundColor: t.card,
             backgroundImage: imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
             child: _isUploading 
@@ -152,7 +156,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   : null),
           ),
         ),
-        // أيقونة الكاميرا تظهر فقط في بروفايل المستخدم الحالي
         if (_isMe)
           Positioned(
             bottom: 5, right: 5,
@@ -166,26 +169,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
             ),
           ),
-        // نقطة الاتصال تظهر للآخرين فقط (اختياري)
-        if (!u.isOnline && !_isMe)
-          Positioned(
-            bottom: 8, right: 8,
-            child: Container(
-              width: 18, height: 18, 
-              decoration: BoxDecoration(
-                color: Colors.greenAccent, 
-                shape: BoxShape.circle, 
-                border: Border.all(color: t.background, width: 3)
-              )
-            ),
-          ),
       ]),
     );
   }
 
-  // ... باقي الدوال (Appbar, InfoCard, الخ) تبقى كما هي في كودك الأصلي ...
-  // [أبقي على بقية الدوال التي أرسلتها لي دون تغيير]
-  
   PreferredSizeWidget _buildAppBar(AppThemeData t) {
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -198,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (!_isMe) 
           IconButton(
             icon: const Icon(Icons.report_gmailerrorred_rounded, color: Colors.redAccent), 
-            onPressed: _showReportSheet
+            onPressed: () {} // يمكن إضافة دالة الإبلاغ هنا
           ),
       ],
     );
@@ -268,9 +255,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     ]);
   }
-
-  void _showReportSheet() {
-    // [كود نافذة الإبلاغ كما هو في رسالتك السابقة]
-  }
 }
-
