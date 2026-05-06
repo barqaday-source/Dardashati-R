@@ -1,6 +1,6 @@
-import 'package:dardashati/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:blur/blur.dart'; 
+import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/models.dart'; 
 import 'package:dardashati/services/database_service.dart';
 
@@ -35,6 +35,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
     _markAsRead();
   }
 
+  // استخدام الخدمة المحدثة لتمييز الرسائل كمقروءة
   void _markAsRead() {
     DatabaseService.markPrivateMessagesRead(widget.otherUserId);
   }
@@ -55,14 +56,13 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
     return Scaffold(
       backgroundColor: t.background,
       appBar: AppBar(
-        // إصلاح منطق الـ Blur ليعمل مع المكتبة دون أخطاء
         flexibleSpace: ClipRect(
           child: Container(color: t.menu.withOpacity(0.7)).frozen(blur: 10),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: t.text),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: t.text, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: _buildAppBarTitle(t),
@@ -70,49 +70,59 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
+            child: StreamBuilder<List<AppMessage>>(
+              // تحديث البث ليستخدم الموديل AppMessage مباشرة
               stream: DatabaseService.getMessagesStream(widget.otherUserId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(child: CircularProgressIndicator(color: t.button));
                 }
-                if (snapshot.hasData) {
-                  final newMessages = snapshot.data!
-                      .map((m) => AppMessage.fromMap(m))
-                      .toList();
-                  
-                  // التمرير للأسفل تلقائياً عند وصول رسالة جديدة
+                
+                final messages = snapshot.data ?? [];
+                
+                if (messages.isNotEmpty) {
                   WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-
-                  return ListView.builder(
-                    controller: _scroll,
-                    padding: const EdgeInsets.all(15),
-                    itemCount: newMessages.length,
-                    itemBuilder: (ctx, i) => _buildMessageBubble(newMessages[i], t),
-                  );
                 }
-                return const SizedBox.shrink();
+
+                return ListView.builder(
+                  controller: _scroll,
+                  padding: const EdgeInsets.all(15),
+                  itemCount: messages.length,
+                  itemBuilder: (ctx, i) => _buildMessageBubble(messages[i], t),
+                );
               },
             ),
           ),
-          if (_replyTo != null) _buildReplyPreview(t), // استدعاء دالة المعاينة التي كانت مفقودة
+          if (_replyTo != null) _buildReplyPreview(t),
           _buildInputArea(t),
         ],
       ),
     );
   }
 
-  // دالة معاينة الرد (إصلاح الخطأ undefined_method)
   Widget _buildReplyPreview(AppThemeData t) {
     return Container(
-      padding: const EdgeInsets.all(8),
-      color: t.card.withOpacity(0.5),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: t.card.withOpacity(0.9),
+        border: Border(top: BorderSide(color: t.button.withOpacity(0.2))),
+      ),
       child: Row(
         children: [
-          const Icon(Icons.reply, size: 20),
+          Icon(Icons.reply_rounded, size: 20, color: t.button),
           const SizedBox(width: 10),
-          Expanded(child: Text(_replyTo!.content, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => setState(() => _replyTo = null)),
+          Expanded(
+            child: Text(
+              _replyTo!.content, 
+              maxLines: 1, 
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: t.text.withOpacity(0.7), fontSize: 13),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close_rounded, size: 18, color: t.text), 
+            onPressed: () => setState(() => _replyTo = null)
+          ),
         ],
       ),
     );
@@ -123,23 +133,26 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
-        onLongPress: () => setState(() => _replyTo = msg), // ميزة الرد عند الضغط المطول
+        onLongPress: () => setState(() => _replyTo = msg),
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 5),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
           decoration: BoxDecoration(
-            color: isMe ? t.button : t.card.withOpacity(0.8),
+            color: isMe ? t.button : t.card,
             borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(20),
-              topRight: const Radius.circular(20),
-              bottomLeft: Radius.circular(isMe ? 20 : 5),
-              bottomRight: Radius.circular(isMe ? 5 : 20),
+              topLeft: const Radius.circular(18),
+              topRight: const Radius.circular(18),
+              bottomLeft: Radius.circular(isMe ? 18 : 4),
+              bottomRight: Radius.circular(isMe ? 4 : 18),
             ),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2))
+            ],
           ),
           child: Text(
             msg.content,
-            style: TextStyle(color: isMe ? t.buttonText : t.text, fontSize: 15, fontFamily: 'Tajawal'),
-            textAlign: TextAlign.right,
+            style: TextStyle(color: isMe ? t.buttonText : t.text, fontSize: 14, fontFamily: 'Tajawal'),
           ),
         ),
       ),
@@ -147,43 +160,53 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
   }
 
   Widget _buildInputArea(AppThemeData t) {
-    return ClipRect(
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: t.menu.withOpacity(0.8)),
-        child: Row(
-          children: [
-            Expanded(
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 25),
+      decoration: BoxDecoration(
+        color: t.card.withOpacity(0.5),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: t.background.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(25),
+              ),
               child: TextField(
                 controller: _ctrl,
                 style: TextStyle(color: t.text),
                 decoration: InputDecoration(
                   hintText: "اكتب رسالة...",
-                  hintStyle: TextStyle(color: t.text.withOpacity(0.5)),
+                  hintStyle: TextStyle(color: t.text.withOpacity(0.3), fontSize: 14),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                 ),
               ),
             ),
-            CircleAvatar(
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () async {
+              if (_ctrl.text.trim().isNotEmpty) {
+                final content = _ctrl.text.trim();
+                _ctrl.clear();
+                final rId = _replyTo?.id;
+                setState(() => _replyTo = null);
+                // استخدام دالة الإرسال المحدثة في DatabaseService
+                await DatabaseService.sendMessage(widget.otherUserId, content, replyToId: rId);
+              }
+            },
+            child: CircleAvatar(
               backgroundColor: t.button,
-              child: IconButton(
-                icon: const Icon(Icons.send_rounded, color: Colors.white),
-                onPressed: () async {
-                  if (_ctrl.text.isNotEmpty) {
-                    final content = _ctrl.text;
-                    _ctrl.clear();
-                    final rId = _replyTo?.id;
-                    setState(() => _replyTo = null);
-                    await DatabaseService.sendMessage(widget.otherUserId, content, replyToId: rId);
-                  }
-                },
-              ),
+              radius: 22,
+              child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
             ),
-          ],
-        ),
-      ).frozen(blur: 15),
-    );
+          ),
+        ],
+      ),
+    ).frozen(blur: 15);
   }
 
   Widget _buildAppBarTitle(AppThemeData t) {
@@ -192,14 +215,16 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
         CircleAvatar(
           backgroundImage: widget.otherUserAvatar.isNotEmpty ? NetworkImage(widget.otherUserAvatar) : null,
           radius: 18,
-          child: widget.otherUserAvatar.isEmpty ? const Icon(Icons.person) : null,
+          backgroundColor: t.button.withOpacity(0.1),
+          child: widget.otherUserAvatar.isEmpty ? Icon(Icons.person, color: t.button) : null,
         ),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.otherUserName, style: TextStyle(color: t.text, fontSize: 16, fontWeight: FontWeight.bold)),
-            const Text("متصل الآن", style: TextStyle(color: Colors.green, fontSize: 11)),
+            Text(widget.otherUserName, 
+              style: TextStyle(color: t.text, fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
+            const Text("نشط الآن", style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.w500)),
           ],
         ),
       ],
