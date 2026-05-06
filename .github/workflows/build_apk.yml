@@ -23,28 +23,28 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      # 1. تصحيح الهوية (لضمان قبول التطبيق في أندرويد)
+      # 1. تصحيح الهوية وتنظيف الكود تلقائياً من التحذيرات
       - name: System Initialization
         run: |
           sed -i 's/name: Dardashati-R/name: dardashati_r/g' pubspec.yaml
           flutter pub get
+          dart fix --apply
 
-      # 2. فحص "المنطق والربط" (تأكد من سلامة كود Supabase و Google Auth)
+      # 2. فحص "المنطق والربط" بعد التنظيف
       - name: Logic & Analytics Check
         run: |
           # هذا الأمر يفحص الكود سطراً بسطر ويبحث عن أي تعارض في المنطق
           flutter analyze 
 
-      # 3. إعادة بناء الهيكل (للتخلص من أي "ترقيع" أو ملفات تالفة من الهاتف)
+      # 3. إعادة بناء الهيكل (للتخلص من أي ملفات تالفة)
       - name: Clean & Reconstruct
         run: |
           rm -rf android
           flutter create . --platforms android
 
-      # 4. بناء الـ APK النهائي (مع دعم خدمات جوجل وسوبابيز)
+      # 4. بناء الـ APK النهائي
       - name: Build Production APK
         run: |
-          # --no-tree-shake-icons: تضمن ظهور أيقونات جوجل وسوبابيز بدون اختفاء
           # --release: لضمان أقصى أداء وسرعة للتطبيق
           flutter build apk --release --no-tree-shake-icons
 
