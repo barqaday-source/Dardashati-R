@@ -1,7 +1,7 @@
 import 'package:dardashati/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-// تم حذف سطر models.dart من هنا لأنه غير مستخدم ويسبب Warning
+// تم حذف سطر models.dart لضمان كود نظيف 100% بدون تحذيرات
 import 'package:dardashati/services/database_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -49,8 +49,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGoogleSignIn() async {
     setState(() { _loading = true; _error = null; });
     try {
-      await DatabaseService.signInWithGoogle();
-      if (mounted) {
+      final response = await DatabaseService.signInWithGoogle();
+      if (response != null && mounted) {
+        // دفع المستخدم للصفحة الرئيسية وتفريغ المكدس
         Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
       }
     } catch (e) {
@@ -126,6 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: t.background,
       body: Stack(
         children: [
+          // الخلفية المتدرجة
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -135,6 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+          // كرات الظلال الجمالية (Blur Orbs)
           Positioned(top: -50, left: -50, child: _BlurOrb(color: t.button.withOpacity(0.15), size: 250)),
           Positioned(bottom: -100, right: -50, child: _BlurOrb(color: t.button.withOpacity(0.1), size: 300)),
           
@@ -154,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 8),
                     Text(_isLogin ? 'سجل دخولك لمتابعة محادثاتك' : 'أنشئ حسابك واستمتع بتجربة دردشة فريدة',
                       textAlign: TextAlign.right,
-                      style: TextStyle(color: t.text.withOpacity(0.6), fontSize: 15)),
+                      style: TextStyle(color: t.text.withOpacity(0.6), fontSize: 15, fontFamily: 'Tajawal')),
                     const SizedBox(height: 40),
 
                     if (_error != null) _buildErrorBox(t),
@@ -172,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         alignment: Alignment.centerLeft,
                         child: TextButton(
                           onPressed: _resetPassword,
-                          child: Text('نسيت كلمة المرور؟', style: TextStyle(color: t.button, fontWeight: FontWeight.bold, fontSize: 13)),
+                          child: Text('نسيت كلمة المرور؟', style: TextStyle(color: t.button, fontWeight: FontWeight.bold, fontSize: 13, fontFamily: 'Tajawal')),
                         ),
                       ),
 
@@ -197,6 +200,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // --- دوال بناء الواجهة ---
+
   Widget _buildSubmitButton(AppThemeData t) {
     return InkWell(
       onTap: _submit,
@@ -213,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: _loading 
             ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: t.buttonText, strokeWidth: 2))
             : Text(_isLogin ? 'تسجيل الدخول' : 'إنشاء الحساب', 
-                style: TextStyle(color: t.buttonText, fontSize: 17, fontWeight: FontWeight.bold)),
+                style: TextStyle(color: t.buttonText, fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
         ),
       ),
     );
@@ -229,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       icon: Image.network('https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.png', height: 22),
       label: Text('الدخول عبر جوجل', 
-        style: TextStyle(color: t.text, fontWeight: FontWeight.bold, fontSize: 15)),
+        style: TextStyle(color: t.text, fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'Tajawal')),
       onPressed: _loading ? null : _handleGoogleSignIn,
     );
   }
@@ -240,7 +245,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Expanded(child: Divider(color: t.text.withOpacity(0.1))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: Text('أو', style: TextStyle(color: t.text.withOpacity(0.3), fontSize: 13)),
+          child: Text('أو', style: TextStyle(color: t.text.withOpacity(0.3), fontSize: 13, fontFamily: 'Tajawal')),
         ),
         Expanded(child: Divider(color: t.text.withOpacity(0.1))),
       ],
@@ -259,10 +264,10 @@ class _LoginScreenState extends State<LoginScreen> {
         obscureText: isPassword && _obscure,
         keyboardType: keyboardType,
         textAlign: TextAlign.right,
-        style: TextStyle(color: t.text, fontWeight: FontWeight.w600),
+        style: TextStyle(color: t.text, fontWeight: FontWeight.w600, fontFamily: 'Tajawal'),
         decoration: InputDecoration(
           hintText: label,
-          hintStyle: TextStyle(color: t.text.withOpacity(0.2), fontSize: 14),
+          hintStyle: TextStyle(color: t.text.withOpacity(0.2), fontSize: 14, fontFamily: 'Tajawal'),
           prefixIcon: Icon(icon, color: t.button, size: 22),
           suffixIcon: isPassword ? IconButton(
             icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: t.text.withOpacity(0.2)),
@@ -291,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
     child: Row(children: [
       const Icon(Icons.error_outline, color: Colors.red, size: 22),
       const SizedBox(width: 12),
-      Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600))),
+      Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w600, fontFamily: 'Tajawal'))),
     ]),
   );
 
@@ -311,7 +316,10 @@ class _LoginScreenState extends State<LoginScreen> {
   );
 
   void _showSuccess(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.green));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, style: const TextStyle(fontFamily: 'Tajawal')), 
+      backgroundColor: Colors.green
+    ));
   }
 
   String _mapAuthError(String error) {
@@ -331,8 +339,6 @@ class _BlurOrb extends StatelessWidget {
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      child: Opacity(opacity: 0.5),
     );
   }
 }
-
