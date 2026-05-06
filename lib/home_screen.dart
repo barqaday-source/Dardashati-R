@@ -1,3 +1,4 @@
+import 'package:dardashati/notifications_screen.dart';
 // 1. Dart & Flutter Imports
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -7,7 +8,6 @@ import 'package:dardashati/models.dart';
 import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
 import 'package:dardashati/profile_screen.dart';
-import 'package:dardashati/notifications_screen.dart'; // تم التأكد من وجود هذا السطر لحل المشكلة
 
 class HomeScreen extends StatefulWidget {
   final AppUser currentUser;
