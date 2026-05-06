@@ -1,4 +1,4 @@
-name: "Dardashati High-Level Build System"
+name: "Dardashati - Ultimate Build & Repair"
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_and_fix:
+  repair_and_build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -23,102 +23,39 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      # الخطوة 1: تشغيل السكريبت (هو اللي راح يدخل للملف ويحذفه ويعدله)
-      - name: "🧠 Intelligent Logic Overwrite"
+      # الخطوة 1: توحيد اسم الحزمة وإصلاح الاستيرادات (حل مشكلة dardashati vs dardashati_r)
+      - name: "🧬 Standardize Package Name"
         run: |
-          cat << 'EOF' > Python.py
-          import os
-          import re
-
-          def build_perfect_main():
-              screens = {'LoginScreen': 'lib/login_screen.dart', 'HomeScreen': 'lib/home_screen.dart'}
-              needs = {}
-              for name, path in screens.items():
-                  if os.path.exists(path):
-                      with open(path, 'r', encoding='utf-8') as f:
-                          content = f.read()
-                          needs[name] = re.findall(r'required this\.(\w+)', content)
-
-              # الكود المصلح الذي سيحل مشكلة الـ const وتضارب الموديلات (cite: 1000005960.png)
-              main_code = """
-          import 'package:flutter/material.dart';
-          import 'package:supabase_flutter/supabase_flutter.dart';
-          import 'package:dardashati_r/models.dart'; 
-          import 'package:dardashati_r/app_theme.dart';
-          import 'package:dardashati_r/login_screen.dart';
-          import 'package:dardashati_r/home_screen.dart';
-
-          void main() async {
-            WidgetsFlutterBinding.ensureInitialized();
-            // ضع روابط Supabase الخاصة بك هنا
-            await Supabase.initialize(url: 'https://xyz.supabase.co', anonKey: 'your_key');
-            runApp(const DardashatiApp());
-          }
-
-          class DardashatiApp extends StatefulWidget {
-            const DardashatiApp({super.key});
-            @override
-            State<DardashatiApp> createState() => _DardashatiAppState();
-          }
-
-          class _DardashatiAppState extends State<DardashatiApp> {
-            late AppThemeData _theme = AppThemeData.dark();
-            void _updateTheme(AppThemeData t) => setState(() => _theme = t);
-
-            @override
-            Widget build(BuildContext context) {
-              return MaterialApp(
-                debugShowCheckedModeBanner: false,
-                theme: _theme.toThemeData(),
-                home: StreamBuilder<AuthState>(
-                  stream: Supabase.instance.client.auth.onAuthStateChange,
-                  builder: (context, snapshot) {
-                    final user = snapshot.data?.session?.user;
-                    if (user == null) {
-                      return LoginScreen(""" + \
-                      ", ".join([f"{p}: {'true' if p=='isLogin' else '_theme' if p=='theme' else '_updateTheme'}" for p in needs.get('LoginScreen', [])]) + \
-                      """);
-                    }
-                    // تحويل المستخدم إلى AppUser المطلوب في سجلاتك (cite: 1000005960.png)
-                    return HomeScreen(""" + \
-                      ", ".join([f"{p}: {'AppUser.fromSupabase(user)' if p=='currentUser' else '_theme' if p=='theme' else '_updateTheme'}" for p in needs.get('HomeScreen', [])]) + \
-                      """);
-                  },
-                ),
-              );
-            }
-          }
-          """
-              if os.path.exists('lib'):
-                  with open('lib/main.dart', 'w', encoding='utf-8') as f:
-                      f.write(main_code)
-                  print("✅ تم سحق ملف main.dart القديم وحقن المنطق الجديد بنجاح!")
-          
-          if __name__ == "__main__":
-              build_perfect_main()
-          EOF
-          python3 auto_builder.py
-
-      # الخطوة 2: تنظيف وحل مشاكل Gradle وبناء التطبيق
-      - name: "🛠️ Final Polish & Build"
-        run: |
-          # إصلاح الأسماء في pubspec لضمان توافق الحزم
-          sed -i 's/name: .*/name: dardashati_r/' pubspec.yaml
-          find . -name "*.dart" -exec sed -i 's/package:dardashati\//package:dardashati_r\//g' {} +
+          sed -i 's/name: .*/name: dardashati/' pubspec.yaml
+          # توحيد كافة الملفات لتستخدم الاستيراد الصحيح
+          find lib -name "*.dart" -exec sed -i 's/package:dardashati_r\//package:dardashati\//g' {} +
           flutter pub get
-          
-          # مسح مجلد أندرويد المعطوب (cite: 1000005957.png)
-          rm -rf android
-          flutter create . --platforms android --project-name dardashati_r
-          
-          # استخدام أداة جوجل الرسمية لإصلاح أي تحذيرات متبقية
-          dart fix --apply
-          
-          # البناء الصارم لإنتاج APK سليم 100%
-          flutter build apk --release --target lib/main.dart --no-tree-shake-icons
 
-      - name: Export Verified APK
+      # الخطوة 2: إنشاء ملفات iOS و Android الناقصة (للقبول في منصات المعاينة)
+      - name: "🍏 Generate Platform Files (iOS & Android)"
+        run: |
+          # مسح المجلدات القديمة لضمان بناء نظيف
+          rm -rf android ios
+          # إنشاء ملفات النظام من جديد باسم موحد
+          flutter create . --platforms android,ios --project-name dardashati
+          flutter pub get
+
+      # الخطوة 3: إصلاح تلقائي للكود (Dart Fix)
+      - name: "🔧 Auto-Repair Code Gaps"
+        run: |
+          # استخدام أداة جوجل لإصلاح النواقص في الكود تلقائياً
+          dart fix --apply
+
+      # الخطوة 4: البناء النهائي لإنتاج APK
+      - name: "🏗️ Final Build"
+        run: |
+          # بناء APK مع تجاهل أي أيقونات مفقودة لضمان النجاح
+          flutter build apk --release --no-tree-shake-icons
+
+      # الخطوة 5: تصدير الملفات (APK + مجلد iOS مضغوط لمنصات المعاينة)
+      - name: Export Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Dardashati-Final-Stable
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: Dardashati-Ready-Package
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
