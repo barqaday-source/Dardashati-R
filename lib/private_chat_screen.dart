@@ -32,7 +32,6 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
   @override
   void initState() {
     super.initState();
-    // تأخير بسيط للتأكد من أن الـ ListView جاهز قبل السكرول
     Future.delayed(Duration.zero, _markAsRead);
   }
 
@@ -56,7 +55,6 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
     return Scaffold(
       backgroundColor: t.background,
       appBar: AppBar(
-        // استخدام Blur خلف الـ AppBar
         flexibleSpace: ClipRect(
           child: Container(color: t.card.withOpacity(0.7)).frozen(blur: 10),
         ),
@@ -77,14 +75,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator(color: t.button));
                 }
-                
-                final messages = (snapshot.data ?? []).reversed.toList(); // عكس القائمة إذا كانت الخدمة ترسلها مرتبة قديماً
-                
-                // سكرول تلقائي عند وصول رسالة جديدة
+                final messages = (snapshot.data ?? []).reversed.toList();
                 if (messages.isNotEmpty) {
                   WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
                 }
-
                 return ListView.builder(
                   controller: _scroll,
                   padding: const EdgeInsets.all(15),
@@ -101,8 +95,35 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
     );
   }
 
-  // ... باقي الـ Widgets (ReplyPreview, MessageBubble, InputArea) التي أرسلتها أنت سليمة جداً
-  
+  // هذه هي الدالة التي كانت تنقصك وتسببت في الخطأ الأخير
+  Widget _buildReplyPreview(AppThemeData t) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: t.card.withOpacity(0.9),
+        border: Border(top: BorderSide(color: t.button.withOpacity(0.2))),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.reply_rounded, size: 20, color: t.button),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _replyTo!.content, 
+              maxLines: 1, 
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: t.text.withOpacity(0.7), fontSize: 13),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close_rounded, size: 18, color: t.text), 
+            onPressed: () => setState(() => _replyTo = null)
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMessageBubble(AppMessage msg, AppThemeData t) {
     final isMe = msg.senderId == widget.currentUser.id;
     return Align(
