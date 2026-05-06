@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 
-// ==================== Models ====================
+// ==================== 1. Models ====================
+// ملاحظة: هذه النماذج تم دمجها هنا لضمان عدم وجود أخطاء في المسارات أثناء البناء التلقائي
 
 class AppMessage {
   final String id;
   final String senderId;
   final String content;
-  final DateTime time; // تم استخدام time ليتوافق مع شاشاتك
+  final DateTime time; 
   final String? senderName;
   final String? senderAvatar;
   final String? replyToId;
   final String? replyToSender; 
   final String? replyToContent;
-  final bool isRead; // حل خطأ الـ getter المفقود
+  final bool isRead; 
 
   AppMessage({
     required this.id,
@@ -86,7 +87,6 @@ class AppRoom {
 
   AppRoom({required this.id, required this.name, this.description, this.memberCount = 0});
 
-  // حل خطأ المسمى في شاشة الغرف
   String get membersLabel => "$memberCount عضو";
 
   factory AppRoom.fromMap(Map<String, dynamic> map) {
@@ -95,6 +95,72 @@ class AppRoom {
       name: map['name']?.toString() ?? 'غرفة',
       description: map['description']?.toString(),
       memberCount: map['member_count'] ?? 0,
+    );
+  }
+}
+
+// ==================== 2. Main Entry Point ====================
+
+void main() async {
+  // التأكد من تهيئة جميع المكونات قبل تشغيل التطبيق
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // ملاحظة للمستقبل: إذا أضفت Supabase.initialize، ضعها هنا.
+  
+  runApp(const DardashatiApp());
+}
+
+// ==================== 3. App Core ====================
+
+class DardashatiApp extends StatelessWidget {
+  const DardashatiApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'دردشاتي',
+      debugShowCheckedModeBanner: false,
+      // ثيم احترافي يدعم Material 3
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0xFF2196F3), // لون أزرق أساسي هادئ
+        brightness: Brightness.light,
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0xFF2196F3),
+        brightness: Brightness.dark,
+      ),
+      // شاشة البداية المؤقتة لحين ربط LoginScreen
+      home: const MainSplashScreen(),
+    );
+  }
+}
+
+class MainSplashScreen extends StatelessWidget {
+  const MainSplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Container(
+        width: double.infinity,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.chat_bubble_outline, size: 80, color: Colors.blue),
+            SizedBox(height: 20),
+            Text(
+              'دردشاتي',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text('جاري تهيئة النظام بأعلى معايير الاستقرار...'),
+          ],
+        ),
+      ),
     );
   }
 }
