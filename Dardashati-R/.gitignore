@@ -1,0 +1,22 @@
+# الأسرار والمفاتيح (أهم سطر للأمان)
+.env
+*.env
+lib/env.dart
+
+# ملفات فلاتر والنظام
+/build/
+/.dart_tool/
+/.packages
+/pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# ملفات أندرويد المؤقتة
+.gradle/
+local.properties
+*.keystore
+*.jks
+
+# ملفات نظام التشغيل
+.DS_Store
+Thumbs.db
