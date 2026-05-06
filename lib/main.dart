@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // تأكد من إضافة هذه المكتبة في pubspec.yaml
-
+import 'package:dardashati/services/supabase_service.dart'; // الخدمة التي عدلناها
 import 'package:dardashati/models.dart';
 import 'package:dardashati/app_theme.dart'; 
 import 'package:dardashati/home_screen.dart';
@@ -12,23 +10,14 @@ import 'package:dardashati/login_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // محاولة تحميل المتغيرات السرية من GitHub Actions
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (e) {
-    debugPrint("Info: .env file not found locally.");
-  }
-
+  // ضبط اتجاه الشاشة
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 
-  // الربط الآمن باستخدام المتغيرات التي وضعتها في GitHub
-  // إذا لم يجدها (أثناء التشغيل المحلي مثلاً) سيستخدم القيم التي أرسلتها أنت كاحتياط
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? 'https://jmsmrojtlstppnpwmkkk.supabase.co', 
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptc21yb2p0bHN0cHBucHdta2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MTg2NDAsImV4cCI6MjA4ODM5NDY0MH0.j7gxr5CvrfvbJJzK_pMwVHiCE2AqpXUTThpeLEBmsos',
-  );
+  // تهيئة سوبابيس باستخدام الخدمة الجديدة التي تسحب القيم من البيئة آلياً
+  // لاحظ حذفنا dotenv.load لأننا لم نعد نحتاجها
+  await SupabaseService.initialize();
 
   runApp(const DardashatiApp());
 }
@@ -41,7 +30,6 @@ class DardashatiApp extends StatefulWidget {
 }
 
 class _DardashatiAppState extends State<DardashatiApp> {
-  // استخدام الثيم الأول كافتراضي لضمان عدم وجود أخطاء في التعريف
   AppThemeData _currentTheme = AppThemes.allThemes[0];
   bool _initialized = false;
   final _navigatorKey = GlobalKey<NavigatorState>();
@@ -55,18 +43,19 @@ class _DardashatiAppState extends State<DardashatiApp> {
 
   Future<void> _loadInitialSettings() async {
     try {
-      if (Supabase.instance.client.auth.currentUser != null) {
-        // منطق جلب الثيم مستقبلاً
+      // هنا يمكنك مستقبلاً جلب الثيم المفضل للمستخدم من Supabase
+      if (SupabaseService.currentAuthUser != null) {
+         // منطق استعادة الثيم من قاعدة البيانات
       }
     } catch (e) {
-      debugPrint("Theme Error: $e");
+      debugPrint("Theme Loading Error: $e");
     } finally {
       if (mounted) setState(() => _initialized = true);
     }
   }
 
   void _listenToAuthChanges() {
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    SupabaseService.client.auth.onAuthStateChange.listen((data) {
       if (data.event == AuthChangeEvent.passwordRecovery) {
         _navigatorKey.currentState?.push(
           MaterialPageRoute(builder: (_) => UpdatePasswordScreen(theme: _currentTheme)),
@@ -85,6 +74,7 @@ class _DardashatiAppState extends State<DardashatiApp> {
       navigatorKey: _navigatorKey,
       title: 'دردشاتي',
       debugShowCheckedModeBanner: false,
+      // دعم اللغة العربية والخطوط
       locale: const Locale('ar', 'SA'),
       supportedLocales: const [Locale('ar', 'SA')],
       localizationsDelegates: const [
@@ -122,11 +112,12 @@ class _AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
+      stream: SupabaseService.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        final session = Supabase.instance.client.auth.currentSession;
+        final session = SupabaseService.client.auth.currentSession;
 
         if (session != null) {
+          // تحويل مستخدم سوبابيس إلى AppUser الخاص بمشروعك
           final user = AppUser(
             id: session.user.id,
             fullName: session.user.userMetadata?['full_name'] ?? 'مستخدم',
@@ -180,7 +171,7 @@ class UpdatePasswordScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
               onPressed: () async {
-                await Supabase.instance.client.auth.updateUser(
+                await SupabaseService.client.auth.updateUser(
                   UserAttributes(password: passController.text.trim())
                 );
                 if (context.mounted) Navigator.pop(context);
