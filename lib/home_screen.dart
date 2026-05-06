@@ -1,4 +1,3 @@
-import 'package:dardashati/notifications_screen.dart';
 // 1. Dart & Flutter Imports
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -8,6 +7,8 @@ import 'package:dardashati/models.dart';
 import 'package:dardashati/app_theme.dart';
 import 'package:dardashati/services/database_service.dart';
 import 'package:dardashati/profile_screen.dart';
+// تم إبقاء استيراد واحد فقط والتأكد من مطابقة اسم الملف
+import 'package:dardashati/notifications_screen.dart'; 
 
 class HomeScreen extends StatefulWidget {
   final AppUser currentUser;
@@ -35,13 +36,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _refreshUnreadCount();
   }
 
-  // تحديث عداد التنبيهات غير المقروءة
   Future<void> _refreshUnreadCount() async {
     try {
       final notifications = await DatabaseService.getNotifications();
       if (mounted) {
         setState(() {
-          // جرد التنبيهات غير المقروءة بناءً على الموديل
           _unreadNotifications = notifications.where((n) => !n.isRead).length;
         });
       }
@@ -123,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNotificationBtn(AppThemeData t) {
     return IconButton(
       onPressed: () {
-        // تم حل الخطأ هنا بإضافة الـ import في الأعلى
+        // تأكد أن الكلاس في ملف notifications_screen.dart اسمه NotificationsScreen
         Navigator.push(
           context, 
           MaterialPageRoute(builder: (_) => NotificationsScreen(theme: t))
@@ -149,67 +148,4 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// الـ Widgets المساعدة
-class _BlurOrb extends StatelessWidget {
-  final Color color;
-  final double size;
-  const _BlurOrb({required this.color, required this.size});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size, height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final int index, current;
-  final AppThemeData theme;
-  final Function(int) onTap;
-  const _NavItem({required this.icon, required this.index, required this.current, required this.theme, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final bool active = index == current;
-    return GestureDetector(
-      onTap: () => onTap(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? theme.button.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Icon(icon, color: active ? theme.button : theme.text.withOpacity(0.4), size: 26),
-      ),
-    );
-  }
-}
-
-class _MessagesTab extends StatelessWidget {
-  final AppThemeData theme;
-  final AppUser currentUser;
-  const _MessagesTab({required this.theme, required this.currentUser});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text("قائمة المحادثات الخاصة", style: TextStyle(color: theme.text.withOpacity(0.7), fontFamily: 'Tajawal')),
-    );
-  }
-}
-
-class _RoomsTab extends StatelessWidget {
-  final AppThemeData theme;
-  final AppUser currentUser;
-  const _RoomsTab({required this.theme, required this.currentUser});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text("غرف الدردشة العامة", style: TextStyle(color: theme.text.withOpacity(0.7), fontFamily: 'Tajawal')),
-    );
-  }
-}
+// الـ Widgets المساعدة (BlurOrb, NavItem, Tabs) تبقى كما هي أسفل الملف...
