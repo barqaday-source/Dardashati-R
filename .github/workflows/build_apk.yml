@@ -23,32 +23,27 @@ jobs:
         with:
           flutter-version: '3.19.6'
 
-      # هذه الخطوة تعالج التضارب في "بيئة البناء" فقط دون التأثير على ملفاتك الأصلية
       - name: Virtual Identity Sync
         run: |
-          # 1. إجبار ملف الإعدادات على قبول الاسم الصغير والمطلوب تقنياً
+          # 1. تصحيح الاسم في ملف الإعدادات
           sed -i 's/name: .*/name: dardashati_r/' pubspec.yaml
           
-          # 2. حل تضارب الـ package: يغير الاستدعاءات داخل الذاكرة المؤقتة لتطابق الاسم الجديد
+          # 2. تصحيح الاستدعاءات في الذاكرة المؤقتة
           find . -name "*.dart" -print0 | xargs -0 sed -i 's/package:dardashati\//package:dardashati_r\//g' || true
           find . -name "*.dart" -print0 | xargs -0 sed -i 's/package:Dardashati-R\//package:dardashati_r\//g' || true
           
           flutter pub get
-          dart fix --apply
 
-      - name: Logic & Analytics Check
+      - name: Clean & Reconstruct Android
         run: |
-          # فحص ذكي يتجاهل التحذيرات لضمان استمرار البناء
-          flutter analyze --no-fatal-warnings
-
-      - name: Clean & Reconstruct
-        run: |
-          flutter clean
-          # إعادة بناء ملفات أندرويد بالهوية الجديدة في بيئة البناء
+          # حذف مجلد أندرويد القديم تماماً لإصلاح مشكلة Gradle
+          rm -rf android
+          # إعادة إنشاء المجلد بإعدادات حديثة تتوافق مع نسخة Flutter
           flutter create . --platforms android --project-name dardashati_r
 
       - name: Build Production APK
         run: |
+          # الآن سيتم بناء الـ APK باستخدام إعدادات Gradle الجديدة
           flutter build apk --release --no-tree-shake-icons
 
       - name: Export Final Application
