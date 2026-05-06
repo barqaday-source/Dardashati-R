@@ -1,94 +1,68 @@
-import 'package:flutter/material.dart';
-import 'package:dardashati/app_theme.dart';
-import 'package:dardashati/services/database_service.dart';
+import 'dart:io';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dardashati/models.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
-class AdminDashboard extends StatefulWidget {
-  final AppThemeData theme;
-  const AdminDashboard({super.key, required this.theme});
+class DatabaseService {
+  static final _client = Supabase.instance.client;
+  static String? get uid => _client.auth.currentUser?.id;
 
-  @override
-  State<AdminDashboard> createState() => _AdminDashboardState();
-}
+  // --- 1. الإشعارات (Notifications) ---
+  static Stream<List<Map<String, dynamic>>> getNotificationsStream() {
+    return _client.from('notifications').stream(primaryKey: ['id'])
+        .eq('user_id', uid!).order('created_at', ascending: false);
+  }
 
-class _AdminDashboardState extends State<AdminDashboard> {
-  @override
-  Widget build(BuildContext context) {
-    final t = widget.theme;
-    final String? currentAdminId = DatabaseService.uid;
-    
-    return Scaffold(
-      backgroundColor: t.background,
-      appBar: AppBar(
-        backgroundColor: t.card,
-        elevation: 0,
-        title: Text('رقابة المجتمع', 
-          style: TextStyle(fontFamily: 'Tajawal', color: t.text, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: t.text, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: StreamBuilder<List<AppUser>>(
-        stream: DatabaseService.getAdminUsersStream(), 
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: t.button));
-          }
-          
-          if (snapshot.hasError) {
-            return Center(child: Text('خطأ في الاتصال بالسيرفر', 
-              style: TextStyle(color: Colors.red, fontFamily: 'Tajawal')));
-          }
-          
-          final users = snapshot.data ?? [];
+  static Future<List<Map<String, dynamic>>> getNotifications() async {
+    return await _client.from('notifications').select().eq('user_id', uid!);
+  }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: users.length,
-            itemBuilder: (context, index) {
-              final user = users[index];
-              final bool isSelf = user.id == currentAdminId;
+  // --- 2. المحادثات (Chat) ---
+  static Future<void> sendMessage(String content, String receiverId, {String? replyToId}) async {
+    await _client.from('private_messages').insert({
+      'sender_id': uid,
+      'receiver_id': receiverId,
+      'content': content,
+      'reply_to_id': replyToId,
+    });
+  }
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: user.isBanned ? Colors.red.withOpacity(0.05) : t.card.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(
-                    color: user.isBanned ? Colors.red.withOpacity(0.2) : Colors.transparent
-                  ),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: CircleAvatar(
-                    radius: 25,
-                    backgroundColor: t.button.withOpacity(0.1),
-                    backgroundImage: (user.avatarUrl.isNotEmpty) ? NetworkImage(user.avatarUrl) : null,
-                    child: (user.avatarUrl.isEmpty) 
-                        ? Text(user.fullName[0], style: TextStyle(color: t.button, fontWeight: FontWeight.bold)) 
-                        : null,
-                  ),
-                  title: Text(user.fullName, 
-                    style: TextStyle(color: t.text, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
-                  subtitle: Text(user.isBanned ? 'حساب مقيد' : 'عضو نشط', 
-                    style: TextStyle(color: user.isBanned ? Colors.red : Colors.green, fontSize: 11)),
-                  trailing: isSelf 
-                      ? Icon(Icons.shield_rounded, color: t.button)
-                      : Switch(
-                          value: user.isBanned,
-                          activeColor: Colors.redAccent,
-                          onChanged: (value) async {
-                            await DatabaseService.toggleUserBan(user.id, value);
-                          },
-                        ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
+  static Stream<List<AppMessage>> getMessagesStream(String otherId) {
+    return _client.from('private_messages').stream(primaryKey: ['id'])
+        .map((data) => data.where((m) => 
+            (m['sender_id'] == uid && m['receiver_id'] == otherId) || 
+            (m['sender_id'] == otherId && m['receiver_id'] == uid))
+        .map((m) => AppMessage.fromMap(m)).toList());
+  }
+
+  static Future<void> markPrivateMessagesRead(String senderId) async {
+    await _client.from('private_messages').update({'is_read': true})
+        .eq('receiver_id', uid!).eq('sender_id', senderId);
+  }
+
+  // --- 3. الغرف والإدارة (Rooms & Admin) ---
+  static Future<void> joinRoom(String roomId) async {
+    await _client.from('room_members').upsert({'room_id': roomId, 'user_id': uid});
+  }
+
+  static Stream<List<AppUser>> getAdminUsersStream() {
+    return _client.from('users').stream(primaryKey: ['id']).map(
+      (data) => data.map((u) => AppUser.fromMap(u)).toList());
+  }
+
+  static Future<void> toggleUserBan(String userId, bool isBanned) async {
+    await _client.from('users').update({'is_banned': isBanned}).eq('id', userId);
+  }
+
+  // --- 4. تحديث البروفايل ---
+  static Future<void> updateProfile({required String fullName, String? bio}) async {
+    await _client.from('users').update({
+      'full_name': fullName,
+      if (bio != null) 'bio': bio,
+    }).eq('id', uid!);
+  }
+
+  static Future<void> saveUserTheme(String themeName) async {
+    await _client.from('users').update({'theme_preference': themeName}).eq('id', uid!);
   }
 }
