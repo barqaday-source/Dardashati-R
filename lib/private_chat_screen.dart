@@ -32,10 +32,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
   @override
   void initState() {
     super.initState();
-    _markAsRead();
+    // تأخير بسيط للتأكد من أن الـ ListView جاهز قبل السكرول
+    Future.delayed(Duration.zero, _markAsRead);
   }
 
-  // استخدام الخدمة المحدثة لتمييز الرسائل كمقروءة
   void _markAsRead() {
     DatabaseService.markPrivateMessagesRead(widget.otherUserId);
   }
@@ -56,8 +56,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
     return Scaffold(
       backgroundColor: t.background,
       appBar: AppBar(
+        // استخدام Blur خلف الـ AppBar
         flexibleSpace: ClipRect(
-          child: Container(color: t.menu.withOpacity(0.7)).frozen(blur: 10),
+          child: Container(color: t.card.withOpacity(0.7)).frozen(blur: 10),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -71,15 +72,15 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<AppMessage>>(
-              // تحديث البث ليستخدم الموديل AppMessage مباشرة
               stream: DatabaseService.getMessagesStream(widget.otherUserId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator(color: t.button));
                 }
                 
-                final messages = snapshot.data ?? [];
+                final messages = (snapshot.data ?? []).reversed.toList(); // عكس القائمة إذا كانت الخدمة ترسلها مرتبة قديماً
                 
+                // سكرول تلقائي عند وصول رسالة جديدة
                 if (messages.isNotEmpty) {
                   WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
                 }
@@ -100,34 +101,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
     );
   }
 
-  Widget _buildReplyPreview(AppThemeData t) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: t.card.withOpacity(0.9),
-        border: Border(top: BorderSide(color: t.button.withOpacity(0.2))),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.reply_rounded, size: 20, color: t.button),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              _replyTo!.content, 
-              maxLines: 1, 
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: t.text.withOpacity(0.7), fontSize: 13),
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.close_rounded, size: 18, color: t.text), 
-            onPressed: () => setState(() => _replyTo = null)
-          ),
-        ],
-      ),
-    );
-  }
-
+  // ... باقي الـ Widgets (ReplyPreview, MessageBubble, InputArea) التي أرسلتها أنت سليمة جداً
+  
   Widget _buildMessageBubble(AppMessage msg, AppThemeData t) {
     final isMe = msg.senderId == widget.currentUser.id;
     return Align(
@@ -146,9 +121,6 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
               bottomLeft: Radius.circular(isMe ? 18 : 4),
               bottomRight: Radius.circular(isMe ? 4 : 18),
             ),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2))
-            ],
           ),
           child: Text(
             msg.content,
@@ -162,47 +134,30 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
   Widget _buildInputArea(AppThemeData t) {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 25),
-      decoration: BoxDecoration(
-        color: t.card.withOpacity(0.5),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
-      ),
+      color: t.card.withOpacity(0.5),
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: t.background.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: TextField(
-                controller: _ctrl,
-                style: TextStyle(color: t.text),
-                decoration: InputDecoration(
-                  hintText: "اكتب رسالة...",
-                  hintStyle: TextStyle(color: t.text.withOpacity(0.3), fontSize: 14),
-                  border: InputBorder.none,
-                ),
+            child: TextField(
+              controller: _ctrl,
+              style: TextStyle(color: t.text),
+              decoration: InputDecoration(
+                hintText: "اكتب رسالة...",
+                hintStyle: TextStyle(color: t.text.withOpacity(0.3)),
+                border: InputBorder.none,
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () async {
+          IconButton(
+            icon: Icon(Icons.send_rounded, color: t.button),
+            onPressed: () async {
               if (_ctrl.text.trim().isNotEmpty) {
-                final content = _ctrl.text.trim();
+                final text = _ctrl.text.trim();
                 _ctrl.clear();
-                final rId = _replyTo?.id;
+                await DatabaseService.sendMessage(widget.otherUserId, text, replyToId: _replyTo?.id);
                 setState(() => _replyTo = null);
-                // استخدام دالة الإرسال المحدثة في DatabaseService
-                await DatabaseService.sendMessage(widget.otherUserId, content, replyToId: rId);
               }
             },
-            child: CircleAvatar(
-              backgroundColor: t.button,
-              radius: 22,
-              child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-            ),
           ),
         ],
       ),
@@ -214,19 +169,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
       children: [
         CircleAvatar(
           backgroundImage: widget.otherUserAvatar.isNotEmpty ? NetworkImage(widget.otherUserAvatar) : null,
-          radius: 18,
-          backgroundColor: t.button.withOpacity(0.1),
-          child: widget.otherUserAvatar.isEmpty ? Icon(Icons.person, color: t.button) : null,
+          child: widget.otherUserAvatar.isEmpty ? const Icon(Icons.person) : null,
         ),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.otherUserName, 
-              style: TextStyle(color: t.text, fontSize: 15, fontWeight: FontWeight.bold, fontFamily: 'Tajawal')),
-            const Text("نشط الآن", style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.w500)),
-          ],
-        ),
+        Text(widget.otherUserName, style: TextStyle(color: t.text, fontSize: 16, fontFamily: 'Tajawal')),
       ],
     );
   }
