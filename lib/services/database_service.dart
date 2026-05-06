@@ -26,8 +26,29 @@ class DatabaseService {
     await _client.auth.signOut();
   }
 
-  // --- 2. المحادثات (Private & Room Chat) ---
-  // تم تعريف sendMessage و replyToId لحل أخطاء GitHub (Error 21, 24)
+  // --- 2. إدارة المستخدمين والبروفايل (حل أخطاء الصورة الأخيرة) ---
+  static Future<AppUser?> getUserById(String userId) async {
+    final data = await _client.from('users').select().eq('id', userId).single();
+    return AppUser.fromMap(data);
+  }
+
+  static Future<void> updateAvatar(String url) async {
+    await _client.from('users').update({'avatar_url': url}).eq('id', uid!);
+  }
+
+  static Future<void> updateProfile({required String fullName, String? bio}) async {
+    await _client.from('users').update({
+      'full_name': fullName,
+      if (bio != null) 'bio': bio,
+    }).eq('id', uid!);
+  }
+
+  static Future<List<AppUser>> searchUsers(String query) async {
+    final res = await _client.from('users').select().ilike('full_name', '%$query%');
+    return (res as List).map((u) => AppUser.fromMap(u)).toList();
+  }
+
+  // --- 3. نظام الدردشة (Private Messages) ---
   static Future<void> sendMessage({required String content, required String receiverId, String? replyToId}) async {
     await _client.from('private_messages').insert({
       'sender_id': uid,
@@ -37,11 +58,6 @@ class DatabaseService {
     });
   }
 
-  static Future<void> sendRoomMessage({required String roomId, required String content}) async {
-    await _client.from('messages').insert({'room_id': roomId, 'user_id': uid, 'content': content});
-  }
-
-  // تحويل البيانات لـ AppMessage لحل خطأ توافق الأنواع (Error 15, 17)
   static Stream<List<AppMessage>> getMessagesStream(String otherId) {
     return _client.from('private_messages').stream(primaryKey: ['id'])
         .map((data) => data.where((m) => 
@@ -55,10 +71,19 @@ class DatabaseService {
         .eq('receiver_id', uid!).eq('sender_id', senderId);
   }
 
-  // --- 3. الغرف والبحث (Rooms & Search) ---
-  // إضافة joinRoom المفقودة (Error 20, 23)
+  // --- 4. نظام الغرف (Rooms) ---
   static Future<void> joinRoom(String roomId) async {
     await _client.from('room_members').upsert({'room_id': roomId, 'user_id': uid});
+  }
+
+  static Stream<List<AppMessage>> subscribeToRoomMessages(String roomId) {
+    return _client.from('messages').stream(primaryKey: ['id']).eq('room_id', roomId)
+        .map((data) => data.map((m) => AppMessage.fromMap(m)).toList());
+  }
+
+  static Future<List<AppUser>> getRoomMembers(String roomId) async {
+    final res = await _client.from('room_members').select('users(*)').eq('room_id', roomId);
+    return (res as List).map((u) => AppUser.fromMap(u['users'])).toList();
   }
 
   static Future<List<AppRoom>> searchRooms(String query) async {
@@ -66,7 +91,7 @@ class DatabaseService {
     return (res as List).map((r) => AppRoom.fromMap(r)).toList();
   }
 
-  // --- 4. الإدارة والبروفايل (Admin & Settings) ---
+  // --- 5. الرقابة والإدارة (Admin) ---
   static Stream<List<AppUser>> getAdminUsersStream() {
     return _client.from('users').stream(primaryKey: ['id']).map(
       (data) => data.map((u) => AppUser.fromMap(u)).toList());
@@ -76,18 +101,11 @@ class DatabaseService {
     await _client.from('users').update({'is_banned': isBanned}).eq('id', userId);
   }
 
-  static Future<void> updateProfile({required String fullName, String? bio}) async {
-    await _client.from('users').update({
-      'full_name': fullName,
-      if (bio != null) 'bio': bio,
-    }).eq('id', uid!);
-  }
-
+  // --- 6. الإعدادات والإشعارات ---
   static Future<void> saveUserTheme(String themeName) async {
     await _client.from('users').update({'theme_preference': themeName}).eq('id', uid!);
   }
 
-  // --- 5. الإشعارات (Notifications) ---
   static Future<List<Map<String, dynamic>>> getNotifications() async {
     return await _client.from('notifications').select().eq('user_id', uid!);
   }
