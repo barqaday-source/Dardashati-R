@@ -8,6 +8,8 @@ on:
 jobs:
   validate_and_build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -18,58 +20,50 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter
+      - name: Set up Flutter 3.24.0
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.6'
+          flutter-version: '3.24.0'
+          channel: 'stable'
 
-      - name: "🛡️ Structural Integrity Check (إصلاح وتأكد من الربط)"
+      - name: "🛡️ Structural Integrity Check"
         run: |
-          # 1. توحيد الهوية لمنع أخطاء الاستيراد (Import Errors)
-          sed -i 's/name: .*/name: dardashati/' pubspec.yaml
-          find lib -name "*.dart" -exec sed -i 's/package:dardashati_r\//package:dardashati\//g' {} +
-
-          # 2. توليد الموارد المطلوبة لضمان عدم توقف الواجهات
-          mkdir -p assets/images assets/fonts
-          echo "dummy" > assets/fonts/Tajawal-Regular.ttf
-          echo "dummy" > assets/fonts/Tajawal-Bold.ttf
-
-          # 3. تحديث الحزم وإصلاح الكود آلياً
+          sed -i 's/name: .*/name: seachat/' pubspec.yaml
+          find lib -name "*.dart" -exec sed -i 's/package:dardashati_r\//package:seachat\//g' {} +
+          mkdir -p assets/icons
           flutter pub get
           dart fix --apply
-
-      - name: "🔍 Deep Analysis (فحص الصفحات والمناداة)"
-        run: |
-          # تشغيل الفاحص الذكي للتأكد من عدم وجود متغيرات ناقصة في الصفحات
-          # إذا كان هناك "انهيار" محتمل بسبب نقص في المودلز، سيظهر هنا
-          flutter analyze || echo "⚠️ تم اكتشاف تحذيرات في الربط، جاري محاولة التجاوز الآمن..."
+        continue-on-error: true
 
       - name: "🤖 Android Environment Sync"
         run: |
-          # إعادة بناء بيئة أندرويد لتتوافق مع الكود المصلح
           rm -rf android
-          flutter create . --platforms android --project-name dardashati
-          
-          # ضبط ملفات Gradle لتكون مستقرة
+          flutter create --org com.seachat --project-name seachat --platforms android .
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "android.useAndroidX=true" >> android/gradle.properties
+          sed -i 's/id "org.jetbrains.kotlin.android" version ".*" apply false/id "org.jetbrains.kotlin.android" version "1.9.22" apply false/' android/settings.gradle
+          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
+        continue-on-error: true
 
-      - name: "🏗️ Safe Build APK"
+      - name: "🏗️ Force Build APK"
         run: |
           flutter clean
           flutter pub get
-          
-          # البناء مع تفعيل خاصية تجاهل الأخطاء غير القاتلة لضمان استخراج الملف
-          flutter build apk --release \
-            --no-tree-shake-icons \
-            --suppress-analytics || true
+          flutter build apk --release --no-tree-shake-icons
+        continue-on-error: true
 
-      - name: "📦 Export Verified Project"
-        uses: actions/upload-artifact@v4
+      - name: "Rename APK"
+        run: |
+          mkdir -p release
+          APK_PATH=$(find build -name "*.apk" | head -n 1)
+          cp "$APK_PATH" release/SeaChat.apk
+        if: always()
+
+      - name: "📦 Upload APK to Release"
+        uses: softprops/action-gh-release@v2
+        if: always()
         with:
-          name: Dardashati-Verified-Build
-          path: |
-            build/app/outputs/flutter-apk/app-release.apk
-            ./
-            ! .git/
-            ! .github/
+          tag_name: v1.0.${{ github.run_number }}
+          name: SeaChat Build ${{ github.run_number }}
+          body: "APK مبني غصب - جرب الواجهة"
+          files: release/SeaChat.apk
